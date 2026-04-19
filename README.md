@@ -39,10 +39,18 @@ cargo install --path crates/aegispq-cli
 sudo cp target/release/aegispq /usr/local/bin/
 ```
 
-Verify:
+Verify and inspect capabilities:
 
 ```bash
-aegispq --version
+aegispq --version             # Version string
+aegispq version               # Version, protocol revision, and capability flags (add --json for machine output)
+```
+
+Shell completions (Bash, Zsh, Fish, PowerShell, Elvish):
+
+```bash
+aegispq completions bash > /etc/bash_completion.d/aegispq
+aegispq completions zsh  > "${fpath[1]}/_aegispq"
 ```
 
 ## Quick Start
@@ -97,7 +105,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design breakdown.
 | Passphrase KDF | Argon2id | -- | |
 | Hashing | BLAKE3 | -- | |
 
-Every operation uses hybrid constructions: an attacker must break **both** the classical and post-quantum component to compromise security. See [DESIGN.md](DESIGN.md) for the authoritative protocol specification and [THREAT_MODEL.md](THREAT_MODEL.md) for the threat model.
+Every operation uses hybrid constructions: an attacker must break **both** the classical and post-quantum component to compromise security. See [DESIGN.md](DESIGN.md) for the authoritative protocol specification, [THREAT_MODEL.md](THREAT_MODEL.md) for the threat model, and [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for wire-format and backwards-compatibility guarantees.
 
 ## Security Properties
 
