@@ -1,0 +1,20 @@
+[package]
+name = "aegispq-store"
+description = "Encrypted storage layer for AegisPQ — key store, identity store, session store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+aegispq-core.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"

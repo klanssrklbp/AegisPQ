@@ -1,0 +1,33 @@
+[package]
+name = "aegispq-core"
+description = "Cryptographic core for AegisPQ — thin wrappers around audited primitives"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+aes-gcm.workspace = true
+chacha20poly1305.workspace = true
+x25519-dalek.workspace = true
+ed25519-dalek.workspace = true
+ml-kem.workspace = true
+ml-dsa.workspace = true
+blake3.workspace = true
+sha2.workspace = true
+hkdf.workspace = true
+argon2.workspace = true
+zeroize.workspace = true
+subtle.workspace = true
+rand_core.workspace = true
+# rand_core 0.10 — required by ml-dsa (via signature 3.x); ml-kem still uses 0.6
+rand_core_v10 = { package = "rand_core", version = "0.10" }
+thiserror.workspace = true
+
+[dev-dependencies]
+hex = "0.4"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"

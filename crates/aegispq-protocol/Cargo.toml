@@ -1,0 +1,21 @@
+[package]
+name = "aegispq-protocol"
+description = "Protocol layer for AegisPQ — envelope construction, session management, version negotiation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+aegispq-core.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+proptest = "1"
+aegispq-core = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

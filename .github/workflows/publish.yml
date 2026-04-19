@@ -1,0 +1,64 @@
+name: Publish to crates.io
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (validate without publishing)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+jobs:
+  publish:
+    name: Publish crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify workspace builds
+        run: cargo build --workspace
+
+      - name: Run full test suite
+        env:
+          AEGISPQ_FAST_KDF: "1"
+        run: cargo test --workspace
+
+      # Publish in dependency order: core -> protocol -> store -> api -> facade -> cli
+      - name: Publish aegispq-core
+        run: |
+          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
+          cargo publish -p aegispq-core $FLAGS
+
+      - name: Publish aegispq-protocol
+        run: |
+          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
+          cargo publish -p aegispq-protocol $FLAGS
+
+      - name: Publish aegispq-store
+        run: |
+          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
+          cargo publish -p aegispq-store $FLAGS
+
+      - name: Publish aegispq-api
+        run: |
+          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
+          cargo publish -p aegispq-api $FLAGS
+
+      - name: Publish aegispq (facade)
+        run: |
+          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
+          cargo publish -p aegispq $FLAGS
+
+      - name: Publish aegispq-cli
+        run: |
+          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
+          cargo publish -p aegispq-cli $FLAGS

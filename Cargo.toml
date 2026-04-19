@@ -1,0 +1,78 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aegispq",
+    "crates/aegispq-core",
+    "crates/aegispq-protocol",
+    "crates/aegispq-store",
+    "crates/aegispq-api",
+    "crates/aegispq-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/klanssrklbp/AegisPQ"
+categories = ["cryptography", "command-line-utilities"]
+keywords = ["encryption", "post-quantum", "crypto-agile", "hybrid-encryption"]
+
+[workspace.dependencies]
+# Internal crates
+aegispq-core = { path = "crates/aegispq-core", version = "0.1.0" }
+aegispq-protocol = { path = "crates/aegispq-protocol", version = "0.1.0" }
+aegispq-store = { path = "crates/aegispq-store", version = "0.1.0" }
+aegispq-api = { path = "crates/aegispq-api", version = "0.1.0" }
+
+# Authenticated encryption
+aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
+
+# Classical key exchange
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+
+# Classical signatures
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+
+# Post-quantum KEM (FIPS 203)
+ml-kem = "0.2"
+
+# Post-quantum signatures (FIPS 204)
+ml-dsa = "=0.1.0-rc.8"
+
+# Hashing
+blake3 = "1"
+sha2 = "0.10"
+
+# Key derivation
+hkdf = "0.12"
+argon2 = "0.5"
+
+# Memory safety
+zeroize = { version = "1", features = ["derive"] }
+subtle = "2"
+
+# Randomness
+rand_core = { version = "0.6", features = ["getrandom"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+
+# Error handling
+thiserror = "2"
+
+[profile.bench]
+opt-level = 2
+lto = true
+codegen-units = 1
+
+[profile.release]
+opt-level = 2        # Not 3: avoid aggressive optimizations that can introduce timing variations
+lto = true           # Link-time optimization for cross-crate inlining of crypto ops
+codegen-units = 1    # Single codegen unit for consistent optimization
+overflow-checks = true  # Always check integer overflow
+strip = "symbols"    # Strip debug symbols from release binaries
+
+[profile.dev]
+overflow-checks = true

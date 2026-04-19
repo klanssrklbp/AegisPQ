@@ -1,0 +1,62 @@
+[package]
+name = "aegispq-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+aegispq-core = { path = "../crates/aegispq-core" }
+aegispq-protocol = { path = "../crates/aegispq-protocol" }
+aegispq-store = { path = "../crates/aegispq-store" }
+aegispq-api = { path = "../crates/aegispq-api" }
+
+[[bin]]
+name = "fuzz_envelope"
+path = "fuzz_targets/fuzz_envelope.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_key_package"
+path = "fuzz_targets/fuzz_key_package.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_decrypt"
+path = "fuzz_targets/fuzz_decrypt.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_revocation"
+path = "fuzz_targets/fuzz_revocation.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_rotation"
+path = "fuzz_targets/fuzz_rotation.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_stream_decrypt"
+path = "fuzz_targets/fuzz_stream_decrypt.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_record"
+path = "fuzz_targets/fuzz_record.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_signature"
+path = "fuzz_targets/fuzz_signature.rs"
+doc = false
+
+[[bin]]
+name = "fuzz_extract_sender"
+path = "fuzz_targets/fuzz_extract_sender.rs"
+doc = false
+
+[workspace]

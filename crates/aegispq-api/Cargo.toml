@@ -1,0 +1,24 @@
+[package]
+name = "aegispq-api"
+description = "Public API for AegisPQ — misuse-resistant interface for identity, encryption, signing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+aegispq-core.workspace = true
+aegispq-protocol.workspace = true
+aegispq-store.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+aegispq-core.workspace = true
+aegispq-protocol.workspace = true
+aegispq-store.workspace = true
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,30 @@
+[package]
+name = "aegispq"
+description = "Post-quantum-ready hybrid encryption library — identity management, file encryption, and signing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+categories = ["cryptography"]
+keywords = ["encryption", "post-quantum", "hybrid-encryption", "ml-kem", "ml-dsa"]
+
+[dependencies]
+aegispq-api.workspace = true
+aegispq-core.workspace = true
+aegispq-protocol.workspace = true
+aegispq-store.workspace = true
+
+[[example]]
+name = "basic_usage"
+path = "../../examples/basic_usage.rs"
+
+[[bench]]
+name = "crypto_bench"
+harness = false
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
