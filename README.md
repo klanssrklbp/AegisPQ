@@ -110,7 +110,7 @@ Every operation uses hybrid constructions: an attacker must break **both** the c
 ## Testing
 
 ```bash
-cargo test                    # 260+ tests across all crates
+cargo test                    # 240+ tests across all crates
 cargo bench -p aegispq        # Benchmarks (KEM, signatures, encrypt/decrypt)
 cargo +nightly fuzz run <target>  # 9 fuzz targets with seed corpora
 ```

@@ -5,3 +5,6 @@
 *.swo
 .DS_Store
 .claude/
+CLAUDE.md
+graphify-out/
+.aion/
