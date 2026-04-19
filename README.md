@@ -125,6 +125,8 @@ cargo +nightly fuzz run <target>  # 9 fuzz targets with seed corpora
 
 The test suite includes unit tests, integration tests, property-based tests, frozen binary test vectors (protocol + encrypted file + signature), wire format compatibility tests, CLI end-to-end tests, and cross-platform CI on every push.
 
+For throughput and output-size comparisons against [age](https://age-encryption.org/), see [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
 ## Project Status
 
 AegisPQ is under active development. The following is implemented and tested:

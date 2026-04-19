@@ -1,0 +1,16 @@
+# cargo-audit configuration for AegisPQ.
+#
+# Runs in CI on every push/PR via .github/workflows/supply-chain.yml.
+#
+# Docs: https://github.com/rustsec/rustsec/blob/main/cargo-audit/README.md
+
+[advisories]
+# Advisory IDs to ignore with justification. Every entry must document why.
+ignore = [
+    # rand 0.9.x unsound with custom loggers calling rand::rng(). Pulled in
+    # transitively by proptest, which is a dev-dependency of
+    # aegispq-protocol only — never shipped to users of the crate or CLI.
+    "RUSTSEC-2026-0097",
+]
+informational_warnings = ["unmaintained"]
+severity_threshold = "low"

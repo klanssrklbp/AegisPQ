@@ -1,0 +1,66 @@
+# cargo-deny configuration for AegisPQ.
+#
+# Runs in CI on every push/PR via .github/workflows/supply-chain.yml.
+#
+# Docs: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+all-features = true
+
+[output]
+feature-depth = 1
+
+# ---------------------------------------------------------------------------
+# Advisories — RustSec vulnerability database
+# ---------------------------------------------------------------------------
+[advisories]
+version = 2
+yanked = "deny"
+# Per-advisory ignores go here as:
+#   { id = "RUSTSEC-YYYY-NNNN", reason = "..." }
+# Keep every entry justified — unreviewed ignores erode the value of this
+# check. cargo-audit uses a separate ignore list at .cargo/audit.toml.
+ignore = []
+
+# ---------------------------------------------------------------------------
+# Licenses — allow-list of SPDX identifiers
+# ---------------------------------------------------------------------------
+# Every entry is either permissive or file-level copyleft (MPL-2.0) and is
+# compatible with our MIT/Apache-2.0 dual-licensed distribution.
+[licenses]
+version = 2
+confidence-threshold = 0.9
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-1-Clause",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+
+# ---------------------------------------------------------------------------
+# Bans — crate allow/deny list and duplicate-version checks
+# ---------------------------------------------------------------------------
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+
+# ---------------------------------------------------------------------------
+# Sources — where crates are allowed to come from
+# ---------------------------------------------------------------------------
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
