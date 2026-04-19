@@ -3,14 +3,15 @@
 //! Run with: cargo bench
 
 #![allow(unused)]
+#![allow(clippy::unit_arg, clippy::let_unit_value)]
 
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-use aegispq_core::{aead, hash, kem, sig, nonce, kdf};
+use aegispq_core::{aead, hash, kdf, kem, nonce, sig};
 use aegispq_protocol::file::{self, RecipientInfo};
-use aegispq_protocol::padding::PaddingScheme;
 use aegispq_protocol::identity::{IdentityId, IDENTITY_ID_LEN};
+use aegispq_protocol::padding::PaddingScheme;
 use aegispq_protocol::Suite;
 
 // ---------------------------------------------------------------------------
@@ -64,7 +65,10 @@ fn bench<F: FnMut()>(name: &str, target_secs: f64, mut f: F) -> BenchResult {
 }
 
 fn report(results: &[BenchResult]) {
-    println!("\n{:<40} {:>12} {:>12} {:>10}", "Benchmark", "per op", "ops/s", "iters");
+    println!(
+        "\n{:<40} {:>12} {:>12} {:>10}",
+        "Benchmark", "per op", "ops/s", "iters"
+    );
     println!("{}", "-".repeat(78));
     for r in results {
         let per_op = r.per_op();
@@ -111,12 +115,15 @@ fn main() {
 
     let encap = kem::encapsulate(&kem_pk, context).unwrap();
     results.push(bench("kem::decapsulate", 2.0, || {
-        let _ = black_box(kem::decapsulate(
-            &kem_kp,
-            &encap.classical_ephemeral_pk,
-            encap.pq_ciphertext.as_bytes(),
-            context,
-        ).unwrap());
+        let _ = black_box(
+            kem::decapsulate(
+                &kem_kp,
+                &encap.classical_ephemeral_pk,
+                encap.pq_ciphertext.as_bytes(),
+                context,
+            )
+            .unwrap(),
+        );
     }));
 
     // --- Signing ---
@@ -145,15 +152,28 @@ fn main() {
     let aad = b"bench-aad";
 
     results.push(bench("aead::seal AES-256-GCM (1 KiB)", 2.0, || {
-        let _ = black_box(aead::seal(aead::Algorithm::Aes256Gcm, &aead_key, aad, &pt_1k, None).unwrap());
+        let _ = black_box(
+            aead::seal(aead::Algorithm::Aes256Gcm, &aead_key, aad, &pt_1k, None).unwrap(),
+        );
     }));
 
     results.push(bench("aead::seal AES-256-GCM (64 KiB)", 2.0, || {
-        let _ = black_box(aead::seal(aead::Algorithm::Aes256Gcm, &aead_key, aad, &pt_64k, None).unwrap());
+        let _ = black_box(
+            aead::seal(aead::Algorithm::Aes256Gcm, &aead_key, aad, &pt_64k, None).unwrap(),
+        );
     }));
 
     results.push(bench("aead::seal XChaCha20 (1 KiB)", 2.0, || {
-        let _ = black_box(aead::seal(aead::Algorithm::XChaCha20Poly1305, &aead_key, aad, &pt_1k, None).unwrap());
+        let _ = black_box(
+            aead::seal(
+                aead::Algorithm::XChaCha20Poly1305,
+                &aead_key,
+                aad,
+                &pt_1k,
+                None,
+            )
+            .unwrap(),
+        );
     }));
 
     let ct_1k = aead::seal(aead::Algorithm::Aes256Gcm, &aead_key, aad, &pt_1k, None).unwrap();
@@ -180,15 +200,18 @@ fn main() {
     let payload_1k = vec![0xABu8; 1024];
 
     results.push(bench("file::encrypt (1 KiB)", 2.0, || {
-        let _ = black_box(file::encrypt(
-            &payload_1k,
-            &sender_sk,
-            &sender_id,
-            &recip_info,
-            Suite::HybridV1,
-            PaddingScheme::PowerOfTwo,
-            0,
-        ).unwrap());
+        let _ = black_box(
+            file::encrypt(
+                &payload_1k,
+                &sender_sk,
+                &sender_id,
+                &recip_info,
+                Suite::HybridV1,
+                PaddingScheme::PowerOfTwo,
+                0,
+            )
+            .unwrap(),
+        );
     }));
 
     let encrypted_1k = file::encrypt(
@@ -199,15 +222,11 @@ fn main() {
         Suite::HybridV1,
         PaddingScheme::PowerOfTwo,
         0,
-    ).unwrap();
+    )
+    .unwrap();
 
     results.push(bench("file::decrypt (1 KiB)", 2.0, || {
-        let _ = black_box(file::decrypt(
-            &encrypted_1k,
-            &recip_kp,
-            &recip_id,
-            &sender_vk,
-        ).unwrap());
+        let _ = black_box(file::decrypt(&encrypted_1k, &recip_kp, &recip_id, &sender_vk).unwrap());
     }));
 
     // --- File encrypt/decrypt (streaming, 64 KiB payload) ---
@@ -215,17 +234,20 @@ fn main() {
 
     results.push(bench("file::encrypt_stream (64 KiB)", 2.0, || {
         let mut out = Vec::new();
-        let _ = black_box(file::encrypt_stream(
-            &mut &payload_64k[..],
-            &mut out,
-            payload_64k.len() as u64,
-            &sender_sk,
-            &sender_id,
-            &recip_info,
-            Suite::HybridV1,
-            PaddingScheme::PowerOfTwo,
-            0,
-        ).unwrap());
+        let _ = black_box(
+            file::encrypt_stream(
+                &mut &payload_64k[..],
+                &mut out,
+                payload_64k.len() as u64,
+                &sender_sk,
+                &sender_id,
+                &recip_info,
+                Suite::HybridV1,
+                PaddingScheme::PowerOfTwo,
+                0,
+            )
+            .unwrap(),
+        );
     }));
 
     let mut encrypted_64k = Vec::new();
@@ -239,17 +261,21 @@ fn main() {
         Suite::HybridV1,
         PaddingScheme::PowerOfTwo,
         0,
-    ).unwrap();
+    )
+    .unwrap();
 
     results.push(bench("file::decrypt_stream (64 KiB)", 2.0, || {
         let mut out = Vec::new();
-        let _ = black_box(file::decrypt_stream(
-            &mut &encrypted_64k[..],
-            &mut out,
-            &recip_kp,
-            &recip_id,
-            &sender_vk,
-        ).unwrap());
+        let _ = black_box(
+            file::decrypt_stream(
+                &mut &encrypted_64k[..],
+                &mut out,
+                &recip_kp,
+                &recip_id,
+                &sender_vk,
+            )
+            .unwrap(),
+        );
     }));
 
     report(&results);

@@ -102,7 +102,7 @@ jobs:
       - name: Smoke test each fuzz target (30s each)
         run: |
           cd fuzz
-          for target in $(cargo fuzz list 2>/dev/null); do
+          for target in $(cargo +nightly fuzz list 2>/dev/null); do
             echo "--- fuzzing $target for 30s ---"
-            cargo fuzz run "$target" -- -max_total_time=30 -max_len=65536 || true
+            cargo +nightly fuzz run "$target" -- -max_total_time=30 -max_len=65536 || true
           done

@@ -101,7 +101,7 @@ impl Argon2Params {
     pub fn testing() -> Self {
         Self {
             memory_kib: ARGON2_MIN_MEMORY_KIB, // 64 MiB
-            iterations: ARGON2_MIN_ITERATIONS,  // 2
+            iterations: ARGON2_MIN_ITERATIONS, // 2
             parallelism: 1,
         }
     }
@@ -155,7 +155,11 @@ pub fn argon2id_derive(
     )
     .map_err(|_| CoreError::KdfError)?;
 
-    let argon2 = argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, argon2_params);
+    let argon2 = argon2::Argon2::new(
+        argon2::Algorithm::Argon2id,
+        argon2::Version::V0x13,
+        argon2_params,
+    );
 
     let mut output = vec![0u8; 32];
     argon2

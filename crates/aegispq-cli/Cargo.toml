@@ -17,6 +17,7 @@ aegispq-core.workspace = true
 aegispq-protocol.workspace = true
 aegispq-store.workspace = true
 clap = { version = "4", features = ["derive", "env"] }
+clap_complete = "4"
 dirs = "6"
 hex = "0.4"
 rpassword = "7"

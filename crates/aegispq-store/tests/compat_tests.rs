@@ -58,7 +58,11 @@ fn identity_record_header_is_stable() {
     // Magic: "APQI"
     assert_eq!(&bytes[0..4], b"APQI", "identity magic bytes changed");
     // Version: u16 BE = 1
-    assert_eq!(&bytes[4..6], &[0x00, 0x01], "identity record version changed");
+    assert_eq!(
+        &bytes[4..6],
+        &[0x00, 0x01],
+        "identity record version changed"
+    );
     // identity_id (16 bytes) immediately follows.
     assert_eq!(&bytes[6..22], &[0x42; 16]);
 }
@@ -70,7 +74,11 @@ fn contact_record_header_is_stable() {
     // Magic: "APQC"
     assert_eq!(&bytes[0..4], b"APQC", "contact magic bytes changed");
     // Version: u16 BE = 2
-    assert_eq!(&bytes[4..6], &[0x00, 0x02], "contact record version changed");
+    assert_eq!(
+        &bytes[4..6],
+        &[0x00, 0x02],
+        "contact record version changed"
+    );
     // identity_id (16 bytes) immediately follows.
     assert_eq!(&bytes[6..22], &[0x7E; 16]);
 }

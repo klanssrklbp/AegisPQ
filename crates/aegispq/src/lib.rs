@@ -117,9 +117,9 @@ pub use aegispq_api::error;
 
 /// Filesystem-backed encrypted storage.
 pub mod store {
+    pub use aegispq_store::error::StoreError;
     pub use aegispq_store::fs::FileStore;
     pub use aegispq_store::record::{ContactRecord, IdentityRecord, IdentityStatus};
-    pub use aegispq_store::error::StoreError;
 }
 
 /// Low-level protocol types.
@@ -129,18 +129,16 @@ pub mod store {
 /// API ([`identity`], [`encrypt`], [`sign`]) unless you are building custom
 /// storage backends, interop tooling, or another protocol implementation.
 pub mod protocol {
-    pub use aegispq_protocol::FormatType;
-    pub use aegispq_protocol::Suite;
     pub use aegispq_protocol::envelope::{Header, HEADER_SIZE};
     pub use aegispq_protocol::error::ProtocolError;
     pub use aegispq_protocol::file::{RecipientInfo, FILE_ID_LEN};
-    pub use aegispq_protocol::identity::{
-        Fingerprint, IdentityId, IDENTITY_ID_LEN, KeyPackage,
-    };
+    pub use aegispq_protocol::identity::{Fingerprint, IdentityId, KeyPackage, IDENTITY_ID_LEN};
     pub use aegispq_protocol::padding::PaddingScheme;
     pub use aegispq_protocol::revocation::{RevocationCertificate, RevocationReason};
     pub use aegispq_protocol::rotation::RotationCertificate;
     pub use aegispq_protocol::version;
+    pub use aegispq_protocol::FormatType;
+    pub use aegispq_protocol::Suite;
 }
 
 /// Cryptographic primitives.
@@ -172,8 +170,8 @@ pub mod prelude {
     pub use crate::error::Error;
     pub use crate::types::{DecryptedFile, EncryptOptions, Identity, PublicIdentity};
 
-    pub use aegispq_protocol::Suite;
     pub use aegispq_protocol::padding::PaddingScheme;
     pub use aegispq_protocol::revocation::RevocationReason;
+    pub use aegispq_protocol::Suite;
     pub use aegispq_store::record::IdentityStatus;
 }

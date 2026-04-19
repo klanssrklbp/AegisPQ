@@ -390,8 +390,8 @@ fn detached_signature_vector_verifies() {
     let verifying_key = deserialize_verify_keys(&keys_data);
 
     // Use core-level verify with the standalone sign domain separator.
-    let sig_parsed = sig::HybridSignature::from_bytes(&signature)
-        .expect("frozen signature must parse");
+    let sig_parsed =
+        sig::HybridSignature::from_bytes(&signature).expect("frozen signature must parse");
 
     sig::verify(&verifying_key, b"AegisPQ-v1-sign", &message, &sig_parsed)
         .expect("frozen signature must verify with current code");
@@ -407,7 +407,12 @@ fn detached_signature_vector_rejects_wrong_message() {
     let verifying_key = deserialize_verify_keys(&keys_data);
     let sig_parsed = sig::HybridSignature::from_bytes(&signature).unwrap();
 
-    let result = sig::verify(&verifying_key, b"AegisPQ-v1-sign", b"wrong message", &sig_parsed);
+    let result = sig::verify(
+        &verifying_key,
+        b"AegisPQ-v1-sign",
+        b"wrong message",
+        &sig_parsed,
+    );
     assert!(
         result.is_err(),
         "frozen signature must not verify against wrong message"
@@ -421,7 +426,11 @@ fn encrypted_file_vector_header_valid() {
     let ciphertext = load_vector_file(&dir, "ciphertext.bin");
 
     // Must have the correct magic and format type.
-    assert_eq!(&ciphertext[0..4], b"APQ\x01", "envelope magic must be APQ\\x01");
+    assert_eq!(
+        &ciphertext[0..4],
+        b"APQ\x01",
+        "envelope magic must be APQ\\x01"
+    );
     assert_eq!(
         ciphertext[4],
         aegispq_protocol::FormatType::EncryptedFile as u8,
@@ -536,15 +545,11 @@ fn verify_encrypted_file_vector(dir: &std::path::Path) {
     let (sender_vk, recipient_id, recipient_kp) = deserialize_decrypt_keys(&keys_data);
 
     let plaintext = file::decrypt(&ciphertext, &recipient_kp, &recipient_id, &sender_vk)
-        .unwrap_or_else(|e| {
-            panic!(
-                "failed to decrypt vector in {}: {e}",
-                dir.display()
-            )
-        });
+        .unwrap_or_else(|e| panic!("failed to decrypt vector in {}: {e}", dir.display()));
 
     assert_eq!(
-        plaintext, expected,
+        plaintext,
+        expected,
         "plaintext mismatch in vector {}",
         dir.display()
     );
@@ -561,20 +566,10 @@ fn verify_signature_vector(dir: &std::path::Path) {
 
     let verifying_key = deserialize_verify_keys(&keys_data);
     let sig_parsed = sig::HybridSignature::from_bytes(&signature_bytes)
-        .unwrap_or_else(|e| {
-            panic!(
-                "failed to parse signature in {}: {e}",
-                dir.display()
-            )
-        });
+        .unwrap_or_else(|e| panic!("failed to parse signature in {}: {e}", dir.display()));
 
     sig::verify(&verifying_key, b"AegisPQ-v1-sign", &message, &sig_parsed)
-        .unwrap_or_else(|e| {
-            panic!(
-                "signature verification failed in {}: {e}",
-                dir.display()
-            )
-        });
+        .unwrap_or_else(|e| panic!("signature verification failed in {}: {e}", dir.display()));
 }
 
 // ---------------------------------------------------------------------------

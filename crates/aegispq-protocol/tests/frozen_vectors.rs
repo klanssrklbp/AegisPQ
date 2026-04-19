@@ -184,7 +184,8 @@ fn revocation_cert_vector_stable() {
     assert_eq!(&frozen[0..4], &MAGIC);
     assert_eq!(frozen[4], FormatType::RevocationCertificate as u8);
 
-    let parsed = RevocationCertificate::from_bytes(&frozen).expect("frozen revocation cert must parse");
+    let parsed =
+        RevocationCertificate::from_bytes(&frozen).expect("frozen revocation cert must parse");
     assert_eq!(parsed.identity_id, [0xAA; IDENTITY_ID_LEN]);
     assert_eq!(parsed.reason, RevocationReason::Compromised);
     assert_eq!(parsed.effective_at, 1_700_100_000);
@@ -235,7 +236,8 @@ fn key_package_vector_size_pinned() {
     // + 4 × (len_prefix(2) + key_bytes) + timestamp(8) + sig_len(2) + sig(128)
     // = 12 + 16 + 2 + 8 + (2+32 + 2+1952 + 2+32 + 2+1184) + 8 + 2 + 128
     // = 12 + 16 + 10 + 3206 + 138 = 3382
-    let expected_size = HEADER_SIZE + 16 + 2 + 8 + (2 + 32) + (2 + 1952) + (2 + 32) + (2 + 1184) + 8 + 2 + 128;
+    let expected_size =
+        HEADER_SIZE + 16 + 2 + 8 + (2 + 32) + (2 + 1952) + (2 + 32) + (2 + 1184) + 8 + 2 + 128;
     assert_eq!(
         frozen.len(),
         expected_size,
@@ -261,10 +263,18 @@ fn rotation_cert_vector_size_pinned() {
     // Header(12) + old_id(16) + new_id(16) + effective_at(8)
     // + 4 × (len_prefix(2) + key) + name_len(2) + "Rotated"(7)
     // + 2 × (sig_len(2) + sig(64))
-    let expected_size = HEADER_SIZE + 16 + 16 + 8
-        + (2 + 32) + (2 + 1952) + (2 + 32) + (2 + 1184)
-        + 2 + 7
-        + (2 + 64) + (2 + 64);
+    let expected_size = HEADER_SIZE
+        + 16
+        + 16
+        + 8
+        + (2 + 32)
+        + (2 + 1952)
+        + (2 + 32)
+        + (2 + 1184)
+        + 2
+        + 7
+        + (2 + 64)
+        + (2 + 64);
     assert_eq!(
         frozen.len(),
         expected_size,

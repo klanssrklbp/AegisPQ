@@ -344,9 +344,10 @@ fn read_string(data: &[u8], pos: &mut usize) -> Result<String, StoreError> {
             reason: "string extends past end of record",
         });
     }
-    let s = std::str::from_utf8(&data[*pos..*pos + len]).map_err(|_| StoreError::CorruptRecord {
-        reason: "invalid UTF-8 in record string",
-    })?;
+    let s =
+        std::str::from_utf8(&data[*pos..*pos + len]).map_err(|_| StoreError::CorruptRecord {
+            reason: "invalid UTF-8 in record string",
+        })?;
     *pos += len;
     Ok(s.to_string())
 }

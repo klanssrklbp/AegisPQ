@@ -48,7 +48,7 @@ jobs:
       - name: Run fuzzer (${{ matrix.target }}, ${{ env.FUZZ_DURATION }}s)
         run: |
           cd fuzz
-          cargo fuzz run ${{ matrix.target }} -- \
+          cargo +nightly fuzz run ${{ matrix.target }} -- \
             -max_total_time=${{ env.FUZZ_DURATION }} \
             -max_len=65536
 

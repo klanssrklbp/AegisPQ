@@ -6,7 +6,7 @@
 use proptest::prelude::*;
 
 use aegispq_core::{kem, sig};
-use aegispq_protocol::file::{encrypt, decrypt, RecipientInfo};
+use aegispq_protocol::file::{decrypt, encrypt, RecipientInfo};
 use aegispq_protocol::identity::{KeyPackage, IDENTITY_ID_LEN};
 use aegispq_protocol::padding::{pad, unpad, PaddingScheme};
 use aegispq_protocol::revocation::{RevocationCertificate, RevocationReason};
@@ -26,8 +26,7 @@ struct TestIdentity {
 }
 
 fn make_identity() -> TestIdentity {
-    let identity_id: [u8; IDENTITY_ID_LEN] =
-        aegispq_core::nonce::random_bytes().unwrap();
+    let identity_id: [u8; IDENTITY_ID_LEN] = aegispq_core::nonce::random_bytes().unwrap();
     let (signing_key, verifying_key) = sig::generate_keypair().unwrap();
     let kem_keypair = kem::generate_keypair().unwrap();
     let kem_public = kem::public_key(&kem_keypair);

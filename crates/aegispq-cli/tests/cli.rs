@@ -10,7 +10,7 @@
 //! milliseconds instead of the hardened cost we use in production. It must
 //! never be set outside tests.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
 use serde_json::Value;
@@ -65,7 +65,7 @@ fn export_key_package(data_dir: &TempDir, id: &str, passphrase: &str, out: PathB
 }
 
 /// Import a contact key package from `path`.
-fn import_contact(data_dir: &TempDir, path: &PathBuf) -> Value {
+fn import_contact(data_dir: &TempDir, path: &Path) -> Value {
     let assert = cli(data_dir)
         .args(["--json", "contact", "import", path.to_str().unwrap()])
         .assert()
@@ -85,7 +85,10 @@ fn identity_create_and_list_produces_valid_json() {
     let id = create_identity(&data, "Alice", "correct-horse-battery-staple");
     assert_eq!(id.len(), 32, "identity ID should be 16 bytes of hex");
 
-    let assert = cli(&data).args(["--json", "identity", "list"]).assert().success();
+    let assert = cli(&data)
+        .args(["--json", "identity", "list"])
+        .assert()
+        .success();
     let v: Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
     assert_eq!(v["command"], "identity.list");
     let list = v["identities"].as_array().expect("array");
@@ -346,7 +349,10 @@ fn json_error_output_on_bad_input() {
     let out = assert.get_output().stdout.clone();
     let v: Value = serde_json::from_slice(&out).expect("error is json");
     assert!(v.get("error").is_some(), "error field must be present");
-    assert!(v.get("error_kind").is_some(), "error_kind field must be present");
+    assert!(
+        v.get("error_kind").is_some(),
+        "error_kind field must be present"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -424,7 +430,11 @@ fn encrypt_to_revoked_contact_fails() {
         .success();
 
     cli(&alice_data)
-        .args(["contact", "import-revocation", rev_cert_path.to_str().unwrap()])
+        .args([
+            "contact",
+            "import-revocation",
+            rev_cert_path.to_str().unwrap(),
+        ])
         .assert()
         .success();
 
@@ -558,9 +568,19 @@ fn json_error_envelope_has_consistent_shape() {
     // Several different error scenarios should all produce {error: "..."} JSON.
     let error_cases: Vec<Vec<&str>> = vec![
         // Non-existent identity.
-        vec!["--json", "identity", "fingerprint", "deadbeefdeadbeefdeadbeefdeadbeef"],
+        vec![
+            "--json",
+            "identity",
+            "fingerprint",
+            "deadbeefdeadbeefdeadbeefdeadbeef",
+        ],
         // Non-existent contact.
-        vec!["--json", "contact", "inspect", "deadbeefdeadbeefdeadbeefdeadbeef"],
+        vec![
+            "--json",
+            "contact",
+            "inspect",
+            "deadbeefdeadbeefdeadbeefdeadbeef",
+        ],
         // Invalid hex in identity ID (odd number of chars).
         vec!["--json", "identity", "export", "not-valid-hex"],
     ];
@@ -728,15 +748,15 @@ fn identity_list_empty_produces_valid_json() {
 fn version_command_json_has_stable_fields() {
     let data = TempDir::new().unwrap();
 
-    let assert = cli(&data)
-        .args(["--json", "version"])
-        .assert()
-        .success();
+    let assert = cli(&data).args(["--json", "version"]).assert().success();
     let v: Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
 
     assert_eq!(v["command"], "version");
     assert!(v["version"].is_string(), "version field must be a string");
-    assert!(v["protocol_version"].is_number(), "protocol_version must be a number");
+    assert!(
+        v["protocol_version"].is_number(),
+        "protocol_version must be a number"
+    );
     assert!(v["min_protocol_version"].is_number());
 
     // Suites array must contain our two known suites.
@@ -765,13 +785,16 @@ fn version_command_json_has_stable_fields() {
 fn version_command_human_shows_version() {
     let data = TempDir::new().unwrap();
 
-    let assert = cli(&data)
-        .args(["version"])
-        .assert()
-        .success();
+    let assert = cli(&data).args(["version"]).assert().success();
     let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
-    assert!(stdout.contains("aegispq"), "human version should contain binary name");
-    assert!(stdout.contains("Protocol:"), "should mention protocol version");
+    assert!(
+        stdout.contains("aegispq"),
+        "human version should contain binary name"
+    );
+    assert!(
+        stdout.contains("Protocol:"),
+        "should mention protocol version"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -808,8 +831,15 @@ fn exit_code_3_on_tampered_signature() {
     std::fs::write(&doc, b"original").unwrap();
 
     cli(&alice_data)
-        .args(["sign", "--file", doc.to_str().unwrap(), "--identity", &alice_id,
-               "--output", sig.to_str().unwrap()])
+        .args([
+            "sign",
+            "--file",
+            doc.to_str().unwrap(),
+            "--identity",
+            &alice_id,
+            "--output",
+            sig.to_str().unwrap(),
+        ])
         .write_stdin("a\n")
         .assert()
         .success();
@@ -818,12 +848,22 @@ fn exit_code_3_on_tampered_signature() {
     std::fs::write(&doc, b"tampered").unwrap();
 
     let assert = cli(&bob_data)
-        .args(["verify", "--file", doc.to_str().unwrap(), "--signature",
-               sig.to_str().unwrap(), "--signer", &alice_id])
+        .args([
+            "verify",
+            "--file",
+            doc.to_str().unwrap(),
+            "--signature",
+            sig.to_str().unwrap(),
+            "--signer",
+            &alice_id,
+        ])
         .assert()
         .failure();
     let code = assert.get_output().status.code().unwrap();
-    assert_eq!(code, 3, "invalid signature should exit with code 3 (integrity)");
+    assert_eq!(
+        code, 3,
+        "invalid signature should exit with code 3 (integrity)"
+    );
 }
 
 #[test]
@@ -845,7 +885,13 @@ fn exit_code_3_on_revoked_encrypt() {
     // Revoke Bob.
     let rev = bob_data.path().join("b.rev.apq");
     cli(&bob_data)
-        .args(["identity", "revoke", &bob_id, "--output", rev.to_str().unwrap()])
+        .args([
+            "identity",
+            "revoke",
+            &bob_id,
+            "--output",
+            rev.to_str().unwrap(),
+        ])
         .write_stdin("b\n")
         .assert()
         .success();
@@ -859,13 +905,23 @@ fn exit_code_3_on_revoked_encrypt() {
     std::fs::write(&f, b"test").unwrap();
 
     let assert = cli(&alice_data)
-        .args(["encrypt", "--file", f.to_str().unwrap(), "--to", &bob_id,
-               "--identity", &alice_id])
+        .args([
+            "encrypt",
+            "--file",
+            f.to_str().unwrap(),
+            "--to",
+            &bob_id,
+            "--identity",
+            &alice_id,
+        ])
         .write_stdin("a\n")
         .assert()
         .failure();
     let code = assert.get_output().status.code().unwrap();
-    assert_eq!(code, 3, "encrypt to revoked contact should exit with code 3");
+    assert_eq!(
+        code, 3,
+        "encrypt to revoked contact should exit with code 3"
+    );
 }
 
 #[test]
@@ -903,8 +959,15 @@ fn verify_invalid_signature_json_has_error_envelope() {
     std::fs::write(&doc, b"hello").unwrap();
 
     cli(&alice_data)
-        .args(["sign", "--file", doc.to_str().unwrap(), "--identity", &alice_id,
-               "--output", sig_file.to_str().unwrap()])
+        .args([
+            "sign",
+            "--file",
+            doc.to_str().unwrap(),
+            "--identity",
+            &alice_id,
+            "--output",
+            sig_file.to_str().unwrap(),
+        ])
         .write_stdin("a\n")
         .assert()
         .success();
@@ -913,8 +976,16 @@ fn verify_invalid_signature_json_has_error_envelope() {
     std::fs::write(&doc, b"tampered").unwrap();
 
     let assert = cli(&bob_data)
-        .args(["--json", "verify", "--file", doc.to_str().unwrap(), "--signature",
-               sig_file.to_str().unwrap(), "--signer", &alice_id])
+        .args([
+            "--json",
+            "verify",
+            "--file",
+            doc.to_str().unwrap(),
+            "--signature",
+            sig_file.to_str().unwrap(),
+            "--signer",
+            &alice_id,
+        ])
         .assert()
         .failure();
     let v: Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
@@ -950,8 +1021,17 @@ fn revocation_full_lifecycle() {
     std::fs::write(&msg, b"pre-revocation secret").unwrap();
 
     cli(&alice_data)
-        .args(["encrypt", "--file", msg.to_str().unwrap(), "--to", &bob_id,
-               "--identity", &alice_id, "--output", ct.to_str().unwrap()])
+        .args([
+            "encrypt",
+            "--file",
+            msg.to_str().unwrap(),
+            "--to",
+            &bob_id,
+            "--identity",
+            &alice_id,
+            "--output",
+            ct.to_str().unwrap(),
+        ])
         .write_stdin("a\n")
         .assert()
         .success();
@@ -959,8 +1039,16 @@ fn revocation_full_lifecycle() {
     // Alice revokes herself. Bob imports the revocation.
     let rev_cert = alice_data.path().join("a.rev.apq");
     let assert = cli(&alice_data)
-        .args(["--json", "identity", "revoke", &alice_id, "--reason", "compromised",
-               "--output", rev_cert.to_str().unwrap()])
+        .args([
+            "--json",
+            "identity",
+            "revoke",
+            &alice_id,
+            "--reason",
+            "compromised",
+            "--output",
+            rev_cert.to_str().unwrap(),
+        ])
         .write_stdin("a\n")
         .assert()
         .success();
@@ -969,7 +1057,12 @@ fn revocation_full_lifecycle() {
     assert_eq!(rev_json["reason"], "compromised");
 
     let assert = cli(&bob_data)
-        .args(["--json", "contact", "import-revocation", rev_cert.to_str().unwrap()])
+        .args([
+            "--json",
+            "contact",
+            "import-revocation",
+            rev_cert.to_str().unwrap(),
+        ])
         .assert()
         .success();
     let import_json: Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
@@ -987,8 +1080,15 @@ fn revocation_full_lifecycle() {
     // Verify: Bob CAN still decrypt the pre-revocation file.
     let dec = work.path().join("msg-dec.txt");
     cli(&bob_data)
-        .args(["decrypt", "--file", ct.to_str().unwrap(), "--identity", &bob_id,
-               "--output", dec.to_str().unwrap()])
+        .args([
+            "decrypt",
+            "--file",
+            ct.to_str().unwrap(),
+            "--identity",
+            &bob_id,
+            "--output",
+            dec.to_str().unwrap(),
+        ])
         .write_stdin("b\n")
         .assert()
         .success();
@@ -998,8 +1098,15 @@ fn revocation_full_lifecycle() {
     let msg2 = work.path().join("msg2.txt");
     std::fs::write(&msg2, b"should fail").unwrap();
     cli(&bob_data)
-        .args(["encrypt", "--file", msg2.to_str().unwrap(), "--to", &alice_id,
-               "--identity", &bob_id])
+        .args([
+            "encrypt",
+            "--file",
+            msg2.to_str().unwrap(),
+            "--to",
+            &alice_id,
+            "--identity",
+            &bob_id,
+        ])
         .write_stdin("b\n")
         .assert()
         .failure();
@@ -1034,8 +1141,14 @@ fn rotation_full_lifecycle_with_encrypt_decrypt() {
     // Alice rotates to new identity.
     let rot_cert = alice_data.path().join("a.rot.apq");
     let assert = cli(&alice_data)
-        .args(["--json", "identity", "rotate", &alice_id,
-               "--output", rot_cert.to_str().unwrap()])
+        .args([
+            "--json",
+            "identity",
+            "rotate",
+            &alice_id,
+            "--output",
+            rot_cert.to_str().unwrap(),
+        ])
         .write_stdin("a\nnew-a\nnew-a\n")
         .assert()
         .success();
@@ -1046,7 +1159,12 @@ fn rotation_full_lifecycle_with_encrypt_decrypt() {
 
     // Bob imports the rotation certificate.
     let assert = cli(&bob_data)
-        .args(["--json", "contact", "import-rotation", rot_cert.to_str().unwrap()])
+        .args([
+            "--json",
+            "contact",
+            "import-rotation",
+            rot_cert.to_str().unwrap(),
+        ])
         .assert()
         .success();
     let import_json: Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
@@ -1074,8 +1192,15 @@ fn rotation_full_lifecycle_with_encrypt_decrypt() {
     let msg = work.path().join("m.txt");
     std::fs::write(&msg, b"test").unwrap();
     cli(&bob_data)
-        .args(["encrypt", "--file", msg.to_str().unwrap(), "--to", &alice_id,
-               "--identity", &bob_id])
+        .args([
+            "encrypt",
+            "--file",
+            msg.to_str().unwrap(),
+            "--to",
+            &alice_id,
+            "--identity",
+            &bob_id,
+        ])
         .write_stdin("b\n")
         .assert()
         .failure();
@@ -1086,16 +1211,33 @@ fn rotation_full_lifecycle_with_encrypt_decrypt() {
     // Bob encrypts to NEW Alice, and NEW Alice decrypts.
     let ct = work.path().join("m.apq");
     cli(&bob_data)
-        .args(["encrypt", "--file", msg.to_str().unwrap(), "--to", &new_alice_id,
-               "--identity", &bob_id, "--output", ct.to_str().unwrap()])
+        .args([
+            "encrypt",
+            "--file",
+            msg.to_str().unwrap(),
+            "--to",
+            &new_alice_id,
+            "--identity",
+            &bob_id,
+            "--output",
+            ct.to_str().unwrap(),
+        ])
         .write_stdin("b\n")
         .assert()
         .success();
 
     let dec = work.path().join("m-dec.txt");
     let assert = cli(&alice_data)
-        .args(["--json", "decrypt", "--file", ct.to_str().unwrap(),
-               "--identity", &new_alice_id, "--output", dec.to_str().unwrap()])
+        .args([
+            "--json",
+            "decrypt",
+            "--file",
+            ct.to_str().unwrap(),
+            "--identity",
+            &new_alice_id,
+            "--output",
+            dec.to_str().unwrap(),
+        ])
         .write_stdin("new-a\n")
         .assert()
         .success();
@@ -1114,8 +1256,14 @@ fn rotation_full_lifecycle_with_encrypt_decrypt() {
     let ids = list["identities"].as_array().unwrap();
     assert_eq!(ids.len(), 2);
     let statuses: Vec<&str> = ids.iter().map(|i| i["status"].as_str().unwrap()).collect();
-    assert!(statuses.contains(&"rotated"), "old identity should be rotated");
-    assert!(statuses.contains(&"active"), "new identity should be active");
+    assert!(
+        statuses.contains(&"rotated"),
+        "old identity should be rotated"
+    );
+    assert!(
+        statuses.contains(&"active"),
+        "new identity should be active"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1150,21 +1298,41 @@ fn large_file_streaming_roundtrip() {
 
     // Encrypt.
     let assert = cli(&alice_data)
-        .args(["--json", "encrypt", "--file", plaintext_path.to_str().unwrap(),
-               "--to", &bob_id, "--identity", &alice_id,
-               "--output", ciphertext_path.to_str().unwrap()])
+        .args([
+            "--json",
+            "encrypt",
+            "--file",
+            plaintext_path.to_str().unwrap(),
+            "--to",
+            &bob_id,
+            "--identity",
+            &alice_id,
+            "--output",
+            ciphertext_path.to_str().unwrap(),
+        ])
         .write_stdin("a\n")
         .assert()
         .success();
     let enc_json: Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
     assert_eq!(enc_json["command"], "encrypt");
     let ct_size = enc_json["output_bytes"].as_u64().unwrap();
-    assert!(ct_size > size as u64, "ciphertext should be larger than plaintext");
+    assert!(
+        ct_size > size as u64,
+        "ciphertext should be larger than plaintext"
+    );
 
     // Decrypt.
     let assert = cli(&bob_data)
-        .args(["--json", "decrypt", "--file", ciphertext_path.to_str().unwrap(),
-               "--identity", &bob_id, "--output", decrypted_path.to_str().unwrap()])
+        .args([
+            "--json",
+            "decrypt",
+            "--file",
+            ciphertext_path.to_str().unwrap(),
+            "--identity",
+            &bob_id,
+            "--output",
+            decrypted_path.to_str().unwrap(),
+        ])
         .write_stdin("b\n")
         .assert()
         .success();
@@ -1211,9 +1379,7 @@ fn five_recipient_encrypt_decrypt() {
     // Build a recipients file with all 5 IDs.
     let work = TempDir::new().unwrap();
     let recipients_file = work.path().join("recipients.txt");
-    let content: String = recipient_ids.iter()
-        .map(|id| format!("{id}\n"))
-        .collect();
+    let content: String = recipient_ids.iter().map(|id| format!("{id}\n")).collect();
     std::fs::write(&recipients_file, &content).unwrap();
 
     let plaintext_path = work.path().join("shared.txt");
@@ -1222,22 +1388,42 @@ fn five_recipient_encrypt_decrypt() {
 
     // Encrypt using recipients file.
     let assert = cli(&sender_data)
-        .args(["--json", "encrypt", "--file", plaintext_path.to_str().unwrap(),
-               "--recipients-file", recipients_file.to_str().unwrap(),
-               "--identity", &sender_id, "--output", ciphertext_path.to_str().unwrap()])
+        .args([
+            "--json",
+            "encrypt",
+            "--file",
+            plaintext_path.to_str().unwrap(),
+            "--recipients-file",
+            recipients_file.to_str().unwrap(),
+            "--identity",
+            &sender_id,
+            "--output",
+            ciphertext_path.to_str().unwrap(),
+        ])
         .write_stdin("s\n")
         .assert()
         .success();
     let enc_json: Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
     let recipients_arr = enc_json["recipients"].as_array().unwrap();
-    assert_eq!(recipients_arr.len(), 5, "should have 5 recipients in JSON output");
+    assert_eq!(
+        recipients_arr.len(),
+        5,
+        "should have 5 recipients in JSON output"
+    );
 
     // Each recipient decrypts.
     for (i, (data, id)) in recipient_data.iter().zip(&recipient_ids).enumerate() {
         let dec = work.path().join(format!("dec-{i}.txt"));
         cli(data)
-            .args(["decrypt", "--file", ciphertext_path.to_str().unwrap(),
-                   "--identity", id, "--output", dec.to_str().unwrap()])
+            .args([
+                "decrypt",
+                "--file",
+                ciphertext_path.to_str().unwrap(),
+                "--identity",
+                id,
+                "--output",
+                dec.to_str().unwrap(),
+            ])
             .write_stdin(format!("r{i}\n"))
             .assert()
             .success();
@@ -1273,9 +1459,20 @@ fn xchacha_suite_roundtrip() {
 
     // Encrypt with --suite xchacha.
     let assert = cli(&alice_data)
-        .args(["--json", "encrypt", "--file", msg.to_str().unwrap(),
-               "--to", &bob_id, "--identity", &alice_id,
-               "--suite", "xchacha", "--output", ct.to_str().unwrap()])
+        .args([
+            "--json",
+            "encrypt",
+            "--file",
+            msg.to_str().unwrap(),
+            "--to",
+            &bob_id,
+            "--identity",
+            &alice_id,
+            "--suite",
+            "xchacha",
+            "--output",
+            ct.to_str().unwrap(),
+        ])
         .write_stdin("a\n")
         .assert()
         .success();
@@ -1284,8 +1481,15 @@ fn xchacha_suite_roundtrip() {
 
     // Decrypt.
     cli(&bob_data)
-        .args(["decrypt", "--file", ct.to_str().unwrap(), "--identity", &bob_id,
-               "--output", dec.to_str().unwrap()])
+        .args([
+            "decrypt",
+            "--file",
+            ct.to_str().unwrap(),
+            "--identity",
+            &bob_id,
+            "--output",
+            dec.to_str().unwrap(),
+        ])
         .write_stdin("b\n")
         .assert()
         .success();
@@ -1319,8 +1523,17 @@ fn non_recipient_cannot_decrypt() {
 
     // Alice encrypts for Bob only.
     cli(&alice_data)
-        .args(["encrypt", "--file", msg.to_str().unwrap(), "--to", &bob_id,
-               "--identity", &alice_id, "--output", ct.to_str().unwrap()])
+        .args([
+            "encrypt",
+            "--file",
+            msg.to_str().unwrap(),
+            "--to",
+            &bob_id,
+            "--identity",
+            &alice_id,
+            "--output",
+            ct.to_str().unwrap(),
+        ])
         .write_stdin("a\n")
         .assert()
         .success();
@@ -1328,8 +1541,16 @@ fn non_recipient_cannot_decrypt() {
     // Eve tries to decrypt — should fail with exit code 3.
     let eve_out = work.path().join("eve-out.txt");
     let assert = cli(&eve_data)
-        .args(["--json", "decrypt", "--file", ct.to_str().unwrap(),
-               "--identity", &eve_id, "--output", eve_out.to_str().unwrap()])
+        .args([
+            "--json",
+            "decrypt",
+            "--file",
+            ct.to_str().unwrap(),
+            "--identity",
+            &eve_id,
+            "--output",
+            eve_out.to_str().unwrap(),
+        ])
         .write_stdin("e\n")
         .assert()
         .failure();
@@ -1337,5 +1558,8 @@ fn non_recipient_cannot_decrypt() {
     assert_eq!(code, 3, "non-recipient decrypt should exit with code 3");
     let v: Value = serde_json::from_slice(&assert.get_output().stdout).unwrap();
     assert_eq!(v["error_kind"], "not_recipient");
-    assert!(!eve_out.exists(), "no output file should be created for non-recipient");
+    assert!(
+        !eve_out.exists(),
+        "no output file should be created for non-recipient"
+    );
 }

@@ -221,7 +221,7 @@ pub fn decrypt_file_stream_with_store<W: std::io::Write>(
     let sender_id = extract_sender_id(ciphertext)?;
     let sender = crate::identity::load_contact(&sender_id, store)?;
 
-    let mut reader = &ciphertext[..];
+    let mut reader = ciphertext;
     let bytes = file::decrypt_stream(
         &mut reader,
         output,
@@ -253,17 +253,30 @@ pub fn encrypt_file_to_path(
     options: &EncryptOptions,
 ) -> Result<(), Error> {
     let input_size = std::fs::metadata(input_path)
-        .map_err(|_| Error::IoError { context: "reading input file metadata" })?
+        .map_err(|_| Error::IoError {
+            context: "reading input file metadata",
+        })?
         .len();
-    let mut input = std::fs::File::open(input_path)
-        .map_err(|_| Error::IoError { context: "opening input file" })?;
-    let mut output = std::fs::File::create(output_path)
-        .map_err(|_| Error::IoError { context: "creating output file" })?;
+    let mut input = std::fs::File::open(input_path).map_err(|_| Error::IoError {
+        context: "opening input file",
+    })?;
+    let mut output = std::fs::File::create(output_path).map_err(|_| Error::IoError {
+        context: "creating output file",
+    })?;
 
-    encrypt_file_stream(&mut input, &mut output, input_size, sender, recipients, options)?;
+    encrypt_file_stream(
+        &mut input,
+        &mut output,
+        input_size,
+        sender,
+        recipients,
+        options,
+    )?;
 
     use std::io::Write;
-    output.flush().map_err(|_| Error::IoError { context: "flushing output file" })?;
+    output.flush().map_err(|_| Error::IoError {
+        context: "flushing output file",
+    })?;
     Ok(())
 }
 
@@ -286,16 +299,18 @@ pub fn decrypt_file_to_path(
     recipient: &Identity,
     store: &FileStore,
 ) -> Result<(IdentityId, u64), Error> {
-    let ciphertext = std::fs::read(ciphertext_path)
-        .map_err(|_| Error::IoError { context: "reading ciphertext file" })?;
+    let ciphertext = std::fs::read(ciphertext_path).map_err(|_| Error::IoError {
+        context: "reading ciphertext file",
+    })?;
 
     let out_dir = output_path.parent().unwrap_or(std::path::Path::new("."));
     let temp_name = format!(".aegispq-dec-{}.tmp", std::process::id());
     let temp_path = out_dir.join(&temp_name);
 
     let result = {
-        let mut temp_file = std::fs::File::create(&temp_path)
-            .map_err(|_| Error::IoError { context: "creating temp file for decryption" })?;
+        let mut temp_file = std::fs::File::create(&temp_path).map_err(|_| Error::IoError {
+            context: "creating temp file for decryption",
+        })?;
         let r = decrypt_file_stream_with_store(&ciphertext, &mut temp_file, recipient, store);
         if r.is_ok() {
             use std::io::Write;
@@ -309,7 +324,9 @@ pub fn decrypt_file_to_path(
         Ok((bytes, sender_id)) => {
             std::fs::rename(&temp_path, output_path).map_err(|_| {
                 let _ = std::fs::remove_file(&temp_path);
-                Error::IoError { context: "renaming decrypted temp file to output" }
+                Error::IoError {
+                    context: "renaming decrypted temp file to output",
+                }
             })?;
             Ok((sender_id, bytes))
         }

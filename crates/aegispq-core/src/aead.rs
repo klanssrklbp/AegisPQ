@@ -150,7 +150,7 @@ fn seal_aes256gcm(
     nonce_gen: Option<&mut GcmNonceGenerator>,
 ) -> Result<Vec<u8>, CoreError> {
     let nonce_bytes = match nonce_gen {
-        Some(gen) => gen.next()?,
+        Some(gen) => gen.next_nonce()?,
         None => {
             // Single-use key: use a random nonce.
             let mut n = [0u8; GCM_NONCE_LEN];
@@ -297,8 +297,14 @@ mod tests {
         assert_ne!(ct1, ct2);
 
         // Both decrypt correctly.
-        assert_eq!(open(Algorithm::Aes256Gcm, &key, aad, &ct1).unwrap(), b"msg1");
-        assert_eq!(open(Algorithm::Aes256Gcm, &key, aad, &ct2).unwrap(), b"msg2");
+        assert_eq!(
+            open(Algorithm::Aes256Gcm, &key, aad, &ct1).unwrap(),
+            b"msg1"
+        );
+        assert_eq!(
+            open(Algorithm::Aes256Gcm, &key, aad, &ct2).unwrap(),
+            b"msg2"
+        );
     }
 
     #[test]

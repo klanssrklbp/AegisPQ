@@ -24,7 +24,12 @@ pub fn create_identity(
     passphrase: &[u8],
     store: &FileStore,
 ) -> Result<Identity, Error> {
-    create_identity_with_params(display_name, passphrase, store, kdf::Argon2Params::default())
+    create_identity_with_params(
+        display_name,
+        passphrase,
+        store,
+        kdf::Argon2Params::default(),
+    )
 }
 
 /// Create a new identity with custom Argon2id parameters.
@@ -136,10 +141,7 @@ pub fn list_identities(store: &FileStore) -> Result<Vec<IdentityId>, Error> {
 }
 
 /// Import a remote party's public key as a contact.
-pub fn import_contact(
-    public: &PublicIdentity,
-    store: &FileStore,
-) -> Result<(), Error> {
+pub fn import_contact(public: &PublicIdentity, store: &FileStore) -> Result<(), Error> {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
@@ -160,10 +162,7 @@ pub fn import_contact(
 }
 
 /// Load a contact from the store.
-pub fn load_contact(
-    identity_id: &IdentityId,
-    store: &FileStore,
-) -> Result<PublicIdentity, Error> {
+pub fn load_contact(identity_id: &IdentityId, store: &FileStore) -> Result<PublicIdentity, Error> {
     let record = store.load_contact(identity_id).map_err(map_store_error)?;
     reconstruct_public_identity(&record)
 }
@@ -212,27 +211,28 @@ pub fn export_key_package(identity: &Identity) -> Result<Vec<u8>, Error> {
 ///
 /// Verifies the embedded hybrid signature before trusting the keys.
 /// Returns the imported public identity.
-pub fn import_key_package(
-    bytes: &[u8],
-    store: &FileStore,
-) -> Result<PublicIdentity, Error> {
+pub fn import_key_package(bytes: &[u8], store: &FileStore) -> Result<PublicIdentity, Error> {
     use aegispq_core::{hash, kem, sig};
     use aegispq_protocol::identity::KeyPackage;
 
     let pkg = KeyPackage::from_bytes(bytes)?;
 
     // Reconstruct verifying key from the package to verify self-signature.
-    let ed_pk: [u8; 32] = pkg
-        .ed25519_pk
-        .as_slice()
-        .try_into()
-        .map_err(|_| Error::InvalidKeyMaterial { context: "Ed25519 public key in key package" })?;
+    let ed_pk: [u8; 32] =
+        pkg.ed25519_pk
+            .as_slice()
+            .try_into()
+            .map_err(|_| Error::InvalidKeyMaterial {
+                context: "Ed25519 public key in key package",
+            })?;
     let classical_vk =
-        sig::ClassicalVerifyingKey::from_bytes(&ed_pk)
-            .map_err(|_| Error::InvalidKeyMaterial { context: "Ed25519 verifying key in key package" })?;
+        sig::ClassicalVerifyingKey::from_bytes(&ed_pk).map_err(|_| Error::InvalidKeyMaterial {
+            context: "Ed25519 verifying key in key package",
+        })?;
     let pq_vk =
-        sig::PqVerifyingKey::from_bytes(&pkg.ml_dsa_pk)
-            .map_err(|_| Error::InvalidKeyMaterial { context: "ML-DSA-65 verifying key in key package" })?;
+        sig::PqVerifyingKey::from_bytes(&pkg.ml_dsa_pk).map_err(|_| Error::InvalidKeyMaterial {
+            context: "ML-DSA-65 verifying key in key package",
+        })?;
     let verifying_key = sig::HybridVerifyingKey {
         classical: classical_vk,
         pq: pq_vk,
@@ -251,14 +251,18 @@ pub fn import_key_package(
     .map_err(|_| Error::AuthenticationFailed)?;
 
     // Reconstruct KEM public key.
-    let x_pk: [u8; 32] = pkg
-        .x25519_pk
-        .as_slice()
-        .try_into()
-        .map_err(|_| Error::InvalidKeyMaterial { context: "X25519 public key in key package" })?;
+    let x_pk: [u8; 32] =
+        pkg.x25519_pk
+            .as_slice()
+            .try_into()
+            .map_err(|_| Error::InvalidKeyMaterial {
+                context: "X25519 public key in key package",
+            })?;
     let classical_pk = kem::ClassicalPublicKey::from_bytes(x_pk);
-    let pq_pk = kem::PqPublicKey::from_bytes(&pkg.ml_kem_pk)
-        .map_err(|_| Error::InvalidKeyMaterial { context: "ML-KEM-768 public key in key package" })?;
+    let pq_pk =
+        kem::PqPublicKey::from_bytes(&pkg.ml_kem_pk).map_err(|_| Error::InvalidKeyMaterial {
+            context: "ML-KEM-768 public key in key package",
+        })?;
 
     let public = PublicIdentity {
         identity_id: pkg.identity_id,
@@ -279,19 +283,13 @@ pub fn import_key_package(
 /// Load an identity record's display name without decrypting keys.
 ///
 /// Useful for listing identities without requiring the passphrase.
-pub fn load_identity_name(
-    identity_id: &IdentityId,
-    store: &FileStore,
-) -> Result<String, Error> {
+pub fn load_identity_name(identity_id: &IdentityId, store: &FileStore) -> Result<String, Error> {
     let record = store.load_identity(identity_id).map_err(map_store_error)?;
     Ok(record.display_name)
 }
 
 /// Load a contact's display name.
-pub fn load_contact_name(
-    identity_id: &IdentityId,
-    store: &FileStore,
-) -> Result<String, Error> {
+pub fn load_contact_name(identity_id: &IdentityId, store: &FileStore) -> Result<String, Error> {
     let record = store.load_contact(identity_id).map_err(map_store_error)?;
     Ok(record.display_name)
 }
@@ -330,7 +328,9 @@ pub fn revoke_identity(
     cert.signature = signature.to_bytes();
 
     // Mark the local identity as revoked.
-    let mut record = store.load_identity(&identity.identity_id).map_err(map_store_error)?;
+    let mut record = store
+        .load_identity(&identity.identity_id)
+        .map_err(map_store_error)?;
     record.status = IdentityStatus::Revoked;
     store.save_identity(&record).map_err(map_store_error)?;
 
@@ -341,17 +341,16 @@ pub fn revoke_identity(
 ///
 /// Verifies the certificate's hybrid signature against the contact's public
 /// keys before updating the contact's status.
-pub fn import_revocation(
-    bytes: &[u8],
-    store: &FileStore,
-) -> Result<IdentityId, Error> {
+pub fn import_revocation(bytes: &[u8], store: &FileStore) -> Result<IdentityId, Error> {
     use aegispq_core::{hash, sig};
     use aegispq_protocol::revocation::RevocationCertificate;
 
     let cert = RevocationCertificate::from_bytes(bytes)?;
 
     // Load the contact to verify the signature.
-    let record = store.load_contact(&cert.identity_id).map_err(map_store_error)?;
+    let record = store
+        .load_contact(&cert.identity_id)
+        .map_err(map_store_error)?;
     let public = reconstruct_public_identity(&record)?;
 
     // Verify the self-signature.
@@ -469,9 +468,14 @@ pub fn rotate_identity_with_params(
     // Save new identity to store.
     let mut new_private_bundle = serialize_private_keys(&new_signing_key, &new_kem_keypair);
     let salt: [u8; kdf::ARGON2_SALT_LEN] = nonce::random_bytes()?;
-    let encrypted =
-        keystore::wrap_key_material(new_passphrase, &salt, &params, &new_identity_id, &new_private_bundle)
-            .map_err(map_store_error)?;
+    let encrypted = keystore::wrap_key_material(
+        new_passphrase,
+        &salt,
+        &params,
+        &new_identity_id,
+        &new_private_bundle,
+    )
+    .map_err(map_store_error)?;
     new_private_bundle.zeroize();
 
     let new_record = IdentityRecord {
@@ -508,10 +512,7 @@ pub fn rotate_identity_with_params(
 ///
 /// Verifies both signatures (old key vouches for new, new key vouches for old),
 /// then updates the contact's keys to the new ones.
-pub fn import_rotation(
-    bytes: &[u8],
-    store: &FileStore,
-) -> Result<IdentityId, Error> {
+pub fn import_rotation(bytes: &[u8], store: &FileStore) -> Result<IdentityId, Error> {
     use aegispq_core::{hash, sig};
     use aegispq_protocol::rotation::RotationCertificate;
 
@@ -536,17 +537,23 @@ pub fn import_rotation(
     .map_err(|_| Error::AuthenticationFailed)?;
 
     // Reconstruct the new verifying key to verify the new signature.
-    let new_ed_pk: [u8; 32] = cert
-        .new_ed25519_pk
-        .as_slice()
-        .try_into()
-        .map_err(|_| Error::InvalidKeyMaterial { context: "Ed25519 public key in rotation cert" })?;
-    let new_classical_vk =
-        sig::ClassicalVerifyingKey::from_bytes(&new_ed_pk)
-            .map_err(|_| Error::InvalidKeyMaterial { context: "Ed25519 verifying key in rotation cert" })?;
-    let new_pq_vk =
-        sig::PqVerifyingKey::from_bytes(&cert.new_ml_dsa_pk)
-            .map_err(|_| Error::InvalidKeyMaterial { context: "ML-DSA-65 verifying key in rotation cert" })?;
+    let new_ed_pk: [u8; 32] =
+        cert.new_ed25519_pk
+            .as_slice()
+            .try_into()
+            .map_err(|_| Error::InvalidKeyMaterial {
+                context: "Ed25519 public key in rotation cert",
+            })?;
+    let new_classical_vk = sig::ClassicalVerifyingKey::from_bytes(&new_ed_pk).map_err(|_| {
+        Error::InvalidKeyMaterial {
+            context: "Ed25519 verifying key in rotation cert",
+        }
+    })?;
+    let new_pq_vk = sig::PqVerifyingKey::from_bytes(&cert.new_ml_dsa_pk).map_err(|_| {
+        Error::InvalidKeyMaterial {
+            context: "ML-DSA-65 verifying key in rotation cert",
+        }
+    })?;
     let new_verifying_key = sig::HybridVerifyingKey {
         classical: new_classical_vk,
         pq: new_pq_vk,
@@ -556,13 +563,8 @@ pub fn import_rotation(
     let new_signable = cert.new_signable_bytes();
     let new_hash = hash::blake3_hash(&new_signable);
     let new_sig = sig::HybridSignature::from_bytes(&cert.new_signature)?;
-    sig::verify(
-        &new_verifying_key,
-        ROTATE_SIGN_DOMAIN,
-        &new_hash,
-        &new_sig,
-    )
-    .map_err(|_| Error::AuthenticationFailed)?;
+    sig::verify(&new_verifying_key, ROTATE_SIGN_DOMAIN, &new_hash, &new_sig)
+        .map_err(|_| Error::AuthenticationFailed)?;
 
     // Mark the old contact as Rotated.
     let mut old_updated = old_record;
@@ -646,8 +648,10 @@ fn reconstruct_keys(
 
     // ML-DSA-65 seed.
     let pq_seed = read_fixed::<32>(bundle, &mut pos)?;
-    let pq_signing = sig::PqSigningKey::from_bytes(&pq_seed)
-        .map_err(|_| Error::InvalidKeyMaterial { context: "ML-DSA-65 signing key in identity record" })?;
+    let pq_signing =
+        sig::PqSigningKey::from_bytes(&pq_seed).map_err(|_| Error::InvalidKeyMaterial {
+            context: "ML-DSA-65 signing key in identity record",
+        })?;
 
     // X25519 secret key.
     let x_sk = read_fixed::<32>(bundle, &mut pos)?;
@@ -658,32 +662,47 @@ fn reconstruct_keys(
     if pos + dk_len > bundle.len() {
         return Err(Error::TruncatedInput);
     }
-    let pq_secret = kem::PqSecretKey::from_bytes(&bundle[pos..pos + dk_len])
-        .map_err(|_| Error::InvalidKeyMaterial { context: "ML-KEM-768 secret key in identity record" })?;
+    let pq_secret = kem::PqSecretKey::from_bytes(&bundle[pos..pos + dk_len]).map_err(|_| {
+        Error::InvalidKeyMaterial {
+            context: "ML-KEM-768 secret key in identity record",
+        }
+    })?;
 
     // Reconstruct public keys from the record.
-    let ed_pk_arr: [u8; 32] = record
-        .ed25519_pk
-        .as_slice()
-        .try_into()
-        .map_err(|_| Error::InvalidKeyMaterial { context: "Ed25519 public key in identity record" })?;
-    let classical_verifying =
-        sig::ClassicalVerifyingKey::from_bytes(&ed_pk_arr)
-            .map_err(|_| Error::InvalidKeyMaterial { context: "Ed25519 verifying key in identity record" })?;
+    let ed_pk_arr: [u8; 32] =
+        record
+            .ed25519_pk
+            .as_slice()
+            .try_into()
+            .map_err(|_| Error::InvalidKeyMaterial {
+                context: "Ed25519 public key in identity record",
+            })?;
+    let classical_verifying = sig::ClassicalVerifyingKey::from_bytes(&ed_pk_arr).map_err(|_| {
+        Error::InvalidKeyMaterial {
+            context: "Ed25519 verifying key in identity record",
+        }
+    })?;
 
-    let pq_verifying =
-        sig::PqVerifyingKey::from_bytes(&record.ml_dsa_pk)
-            .map_err(|_| Error::InvalidKeyMaterial { context: "ML-DSA-65 verifying key in identity record" })?;
+    let pq_verifying = sig::PqVerifyingKey::from_bytes(&record.ml_dsa_pk).map_err(|_| {
+        Error::InvalidKeyMaterial {
+            context: "ML-DSA-65 verifying key in identity record",
+        }
+    })?;
 
-    let x_pk_arr: [u8; 32] = record
-        .x25519_pk
-        .as_slice()
-        .try_into()
-        .map_err(|_| Error::InvalidKeyMaterial { context: "X25519 public key in identity record" })?;
+    let x_pk_arr: [u8; 32] =
+        record
+            .x25519_pk
+            .as_slice()
+            .try_into()
+            .map_err(|_| Error::InvalidKeyMaterial {
+                context: "X25519 public key in identity record",
+            })?;
     let classical_public = kem::ClassicalPublicKey::from_bytes(x_pk_arr);
 
-    let pq_public = kem::PqPublicKey::from_bytes(&record.ml_kem_pk)
-        .map_err(|_| Error::InvalidKeyMaterial { context: "ML-KEM-768 public key in identity record" })?;
+    let pq_public =
+        kem::PqPublicKey::from_bytes(&record.ml_kem_pk).map_err(|_| Error::InvalidKeyMaterial {
+            context: "ML-KEM-768 public key in identity record",
+        })?;
 
     let signing_key = sig::HybridSigningKey {
         classical: classical_signing,
@@ -709,26 +728,37 @@ fn reconstruct_keys(
 
 /// Reconstruct a PublicIdentity from a ContactRecord.
 fn reconstruct_public_identity(record: &ContactRecord) -> Result<PublicIdentity, Error> {
-    let ed_pk: [u8; 32] = record
-        .ed25519_pk
-        .as_slice()
-        .try_into()
-        .map_err(|_| Error::InvalidKeyMaterial { context: "Ed25519 public key in contact record" })?;
+    let ed_pk: [u8; 32] =
+        record
+            .ed25519_pk
+            .as_slice()
+            .try_into()
+            .map_err(|_| Error::InvalidKeyMaterial {
+                context: "Ed25519 public key in contact record",
+            })?;
     let classical_vk =
-        sig::ClassicalVerifyingKey::from_bytes(&ed_pk)
-            .map_err(|_| Error::InvalidKeyMaterial { context: "Ed25519 verifying key in contact record" })?;
-    let pq_vk =
-        sig::PqVerifyingKey::from_bytes(&record.ml_dsa_pk)
-            .map_err(|_| Error::InvalidKeyMaterial { context: "ML-DSA-65 verifying key in contact record" })?;
+        sig::ClassicalVerifyingKey::from_bytes(&ed_pk).map_err(|_| Error::InvalidKeyMaterial {
+            context: "Ed25519 verifying key in contact record",
+        })?;
+    let pq_vk = sig::PqVerifyingKey::from_bytes(&record.ml_dsa_pk).map_err(|_| {
+        Error::InvalidKeyMaterial {
+            context: "ML-DSA-65 verifying key in contact record",
+        }
+    })?;
 
-    let x_pk: [u8; 32] = record
-        .x25519_pk
-        .as_slice()
-        .try_into()
-        .map_err(|_| Error::InvalidKeyMaterial { context: "X25519 public key in contact record" })?;
+    let x_pk: [u8; 32] =
+        record
+            .x25519_pk
+            .as_slice()
+            .try_into()
+            .map_err(|_| Error::InvalidKeyMaterial {
+                context: "X25519 public key in contact record",
+            })?;
     let classical_pk = kem::ClassicalPublicKey::from_bytes(x_pk);
-    let pq_pk = kem::PqPublicKey::from_bytes(&record.ml_kem_pk)
-        .map_err(|_| Error::InvalidKeyMaterial { context: "ML-KEM-768 public key in contact record" })?;
+    let pq_pk =
+        kem::PqPublicKey::from_bytes(&record.ml_kem_pk).map_err(|_| Error::InvalidKeyMaterial {
+            context: "ML-KEM-768 public key in contact record",
+        })?;
 
     Ok(PublicIdentity {
         identity_id: record.identity_id,

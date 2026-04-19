@@ -32,13 +32,11 @@ use ed25519_dalek::{
 use rand_core::OsRng;
 
 // Post-quantum (ML-DSA-65) — uses signature 3.x / rand_core 0.10
-use ml_dsa::{MlDsa65, KeyGen};
 use ml_dsa::signature::{
-    Keypair as PqKeypair,
-    SignatureEncoding as PqSigEncoding,
-    Signer as PqSigner,
+    Keypair as PqKeypair, SignatureEncoding as PqSigEncoding, Signer as PqSigner,
     Verifier as PqVerifier,
 };
+use ml_dsa::{KeyGen, MlDsa65};
 
 use zeroize::ZeroizeOnDrop;
 
@@ -117,11 +115,10 @@ impl ClassicalVerifyingKey {
 
     /// Deserialize from 32 bytes.
     pub fn from_bytes(bytes: &[u8; ED25519_PK_LEN]) -> Result<Self, CoreError> {
-        let inner = Ed25519VerifyingKey::from_bytes(bytes).map_err(|_| {
-            CoreError::InvalidParameter {
+        let inner =
+            Ed25519VerifyingKey::from_bytes(bytes).map_err(|_| CoreError::InvalidParameter {
                 reason: "invalid Ed25519 public key",
-            }
-        })?;
+            })?;
         Ok(Self { inner })
     }
 }
@@ -147,7 +144,7 @@ impl PqSigningKey {
     /// The signing key can be deterministically regenerated from this seed.
     pub fn to_bytes(&self) -> Vec<u8> {
         let seed = self.inner.to_seed();
-        let slice: &[u8] = &*seed;
+        let slice: &[u8] = &seed;
         slice.to_vec()
     }
 
@@ -181,7 +178,7 @@ impl PqVerifyingKey {
     /// Serialize to bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         let encoded = self.inner.encode();
-        let slice: &[u8] = &*encoded;
+        let slice: &[u8] = &encoded;
         slice.to_vec()
     }
 
@@ -259,8 +256,7 @@ impl HybridSignature {
         let classical = bytes[2..2 + classical_len].to_vec();
 
         let pq_offset = 2 + classical_len;
-        let pq_len =
-            u16::from_be_bytes([bytes[pq_offset], bytes[pq_offset + 1]]) as usize;
+        let pq_len = u16::from_be_bytes([bytes[pq_offset], bytes[pq_offset + 1]]) as usize;
         if bytes.len() < pq_offset + 2 + pq_len {
             return Err(CoreError::InvalidParameter {
                 reason: "hybrid signature truncated (PQ component)",
@@ -286,7 +282,9 @@ pub fn generate_keypair() -> Result<(HybridSigningKey, HybridVerifyingKey), Core
 
     let signing_key = HybridSigningKey {
         classical: ClassicalSigningKey { inner: ed_signing },
-        pq: PqSigningKey { inner: Box::new(pq_signing) },
+        pq: PqSigningKey {
+            inner: Box::new(pq_signing),
+        },
     };
 
     let verifying_key = HybridVerifyingKey {
@@ -322,8 +320,7 @@ pub fn sign(
     let ed_sig: Ed25519Signature = Ed25519Signer::sign(&signing_key.classical.inner, &separated);
 
     // ML-DSA-65 signature (signature 3.x Signer trait)
-    let pq_sig: ml_dsa::Signature<MlDsa65> =
-        PqSigner::sign(&*signing_key.pq.inner, &separated);
+    let pq_sig: ml_dsa::Signature<MlDsa65> = PqSigner::sign(&*signing_key.pq.inner, &separated);
 
     Ok(HybridSignature {
         classical: ed_sig.to_bytes().to_vec(),
@@ -359,10 +356,8 @@ pub fn verify(
         .map_err(|_| CoreError::SignatureVerificationFailed)?;
 
     // Verify ML-DSA-65 (signature 3.x Verifier trait)
-    let pq_sig = <ml_dsa::Signature<MlDsa65> as TryFrom<&[u8]>>::try_from(
-        signature.pq.as_slice(),
-    )
-    .map_err(|_| CoreError::SignatureVerificationFailed)?;
+    let pq_sig = <ml_dsa::Signature<MlDsa65> as TryFrom<&[u8]>>::try_from(signature.pq.as_slice())
+        .map_err(|_| CoreError::SignatureVerificationFailed)?;
 
     PqVerifier::verify(&verifying_key.pq.inner, &separated, &pq_sig)
         .map_err(|_| CoreError::SignatureVerificationFailed)?;

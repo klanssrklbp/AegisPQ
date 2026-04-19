@@ -9,8 +9,8 @@
 //! The wrapping AAD includes the domain string `"AegisPQ-v1-identity-wrap"`
 //! and the identity ID, preventing cross-identity key material confusion.
 
-use aegispq_core::{aead, kdf};
 use crate::error::StoreError;
+use aegispq_core::{aead, kdf};
 
 /// Domain separator for identity key wrapping.
 const IDENTITY_WRAP_DOMAIN: &[u8] = b"AegisPQ-v1-identity-wrap";
@@ -35,8 +35,13 @@ pub fn wrap_key_material(
     let wrap_key = aead::AeadKey::from_slice(derived.as_bytes())?;
 
     let aad = build_wrap_aad(identity_id);
-    let sealed =
-        aead::seal(aead::Algorithm::Aes256Gcm, &wrap_key, &aad, plaintext_keys, None)?;
+    let sealed = aead::seal(
+        aead::Algorithm::Aes256Gcm,
+        &wrap_key,
+        &aad,
+        plaintext_keys,
+        None,
+    )?;
 
     // DerivedKey is zeroized on drop; AeadKey is zeroized on drop.
     drop(wrap_key);
@@ -95,8 +100,8 @@ mod tests {
         let identity_id = [0xAA; 16];
         let secret_keys = b"these are my secret keys -- ed25519 + ml-dsa + x25519 + ml-kem";
 
-        let encrypted = wrap_key_material(passphrase, &salt, &params, &identity_id, secret_keys)
-            .unwrap();
+        let encrypted =
+            wrap_key_material(passphrase, &salt, &params, &identity_id, secret_keys).unwrap();
 
         let decrypted =
             unwrap_key_material(passphrase, &salt, &params, &identity_id, &encrypted).unwrap();
@@ -114,8 +119,7 @@ mod tests {
         let encrypted =
             wrap_key_material(b"right", &salt, &params, &identity_id, secret_keys).unwrap();
 
-        let result =
-            unwrap_key_material(b"wrong", &salt, &params, &identity_id, &encrypted);
+        let result = unwrap_key_material(b"wrong", &salt, &params, &identity_id, &encrypted);
 
         assert!(matches!(result, Err(StoreError::InvalidPassphrase)));
     }
@@ -131,8 +135,7 @@ mod tests {
             wrap_key_material(passphrase, &salt, &params, &[0x01; 16], secret_keys).unwrap();
 
         // Try to unwrap with a different identity ID (AAD mismatch).
-        let result =
-            unwrap_key_material(passphrase, &salt, &params, &[0x02; 16], &encrypted);
+        let result = unwrap_key_material(passphrase, &salt, &params, &[0x02; 16], &encrypted);
 
         assert!(matches!(result, Err(StoreError::InvalidPassphrase)));
     }
@@ -144,12 +147,22 @@ mod tests {
         let identity_id = [0xAA; 16];
         let secret_keys = b"secret";
 
-        let e1 =
-            wrap_key_material(passphrase, &[0x01; kdf::ARGON2_SALT_LEN], &params, &identity_id, secret_keys)
-                .unwrap();
-        let e2 =
-            wrap_key_material(passphrase, &[0x02; kdf::ARGON2_SALT_LEN], &params, &identity_id, secret_keys)
-                .unwrap();
+        let e1 = wrap_key_material(
+            passphrase,
+            &[0x01; kdf::ARGON2_SALT_LEN],
+            &params,
+            &identity_id,
+            secret_keys,
+        )
+        .unwrap();
+        let e2 = wrap_key_material(
+            passphrase,
+            &[0x02; kdf::ARGON2_SALT_LEN],
+            &params,
+            &identity_id,
+            secret_keys,
+        )
+        .unwrap();
 
         // Different salts → different wrapping keys → different ciphertext.
         assert_ne!(e1, e2);

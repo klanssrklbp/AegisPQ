@@ -145,12 +145,10 @@ impl RevocationCertificate {
         pos += IDENTITY_ID_LEN;
 
         // Reason.
-        let reason = RevocationReason::from_byte(payload[pos]).ok_or(
-            ProtocolError::Truncated {
-                expected: pos + 1,
-                actual: payload.len(),
-            },
-        )?;
+        let reason = RevocationReason::from_byte(payload[pos]).ok_or(ProtocolError::Truncated {
+            expected: pos + 1,
+            actual: payload.len(),
+        })?;
         pos += 1;
 
         // Effective timestamp.

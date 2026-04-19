@@ -64,9 +64,8 @@ impl Header {
         }
 
         // Parse and validate format type.
-        let format_type = FormatType::from_byte(bytes[4]).ok_or(ProtocolError::UnknownFormat {
-            found: bytes[4],
-        })?;
+        let format_type = FormatType::from_byte(bytes[4])
+            .ok_or(ProtocolError::UnknownFormat { found: bytes[4] })?;
 
         // Parse and validate version.
         let ver = u16::from_be_bytes([bytes[5], bytes[6]]);
@@ -78,9 +77,8 @@ impl Header {
         }
 
         // Parse and validate suite.
-        let suite = Suite::from_byte(bytes[7]).ok_or(ProtocolError::UnsupportedSuite {
-            found: bytes[7],
-        })?;
+        let suite = Suite::from_byte(bytes[7])
+            .ok_or(ProtocolError::UnsupportedSuite { found: bytes[7] })?;
 
         // Parse payload length.
         let payload_length = u32::from_be_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]);

@@ -34,8 +34,14 @@ fn fast_rotate(
     passphrase: &[u8],
     store: &FileStore,
 ) -> (Identity, Vec<u8>) {
-    identity::rotate_identity_with_params(old, name, passphrase, store, kdf::Argon2Params::testing())
-        .unwrap()
+    identity::rotate_identity_with_params(
+        old,
+        name,
+        passphrase,
+        store,
+        kdf::Argon2Params::testing(),
+    )
+    .unwrap()
 }
 
 /// Helper: extract the public portion of an identity.
@@ -58,7 +64,13 @@ fn create_and_load_identity() {
     let (_dir, store) = temp_store();
     let passphrase = b"hunter2";
 
-    let created = identity::create_identity_with_params("Alice", passphrase, &store, kdf::Argon2Params::testing()).unwrap();
+    let created = identity::create_identity_with_params(
+        "Alice",
+        passphrase,
+        &store,
+        kdf::Argon2Params::testing(),
+    )
+    .unwrap();
     let loaded = identity::load_identity(&created.identity_id, passphrase, &store).unwrap();
 
     assert_eq!(created.identity_id, loaded.identity_id);
@@ -73,7 +85,13 @@ fn create_and_load_identity() {
 fn wrong_passphrase_rejected() {
     let (_dir, store) = temp_store();
 
-    let created = identity::create_identity_with_params("Bob", b"correct", &store, kdf::Argon2Params::testing()).unwrap();
+    let created = identity::create_identity_with_params(
+        "Bob",
+        b"correct",
+        &store,
+        kdf::Argon2Params::testing(),
+    )
+    .unwrap();
     let result = identity::load_identity(&created.identity_id, b"wrong", &store);
 
     assert!(result.is_err());
@@ -154,8 +172,7 @@ fn encrypt_decrypt_with_explicit_sender() {
     let ciphertext = encrypt::encrypt_file(plaintext, &alice, &[&bob_public], &options).unwrap();
 
     // Bob decrypts with explicit sender (no store lookup).
-    let decrypted =
-        encrypt::decrypt_file_with_sender(&ciphertext, &bob, &alice_public).unwrap();
+    let decrypted = encrypt::decrypt_file_with_sender(&ciphertext, &bob, &alice_public).unwrap();
 
     assert_eq!(decrypted.plaintext, plaintext);
     assert_eq!(decrypted.sender_identity_id, alice.identity_id);
@@ -180,8 +197,7 @@ fn encrypt_xchacha_suite() {
 
     let ciphertext = encrypt::encrypt_file(plaintext, &alice, &[&bob_public], &options).unwrap();
 
-    let decrypted =
-        encrypt::decrypt_file_with_sender(&ciphertext, &bob, &alice_public).unwrap();
+    let decrypted = encrypt::decrypt_file_with_sender(&ciphertext, &bob, &alice_public).unwrap();
 
     assert_eq!(decrypted.plaintext, plaintext);
 }
@@ -205,12 +221,10 @@ fn multi_recipient_encryption() {
         encrypt::encrypt_file(plaintext, &alice, &[&bob_public, &carol_public], &options).unwrap();
 
     // Both Bob and Carol can decrypt.
-    let bob_pt =
-        encrypt::decrypt_file_with_sender(&ciphertext, &bob, &alice_public).unwrap();
+    let bob_pt = encrypt::decrypt_file_with_sender(&ciphertext, &bob, &alice_public).unwrap();
     assert_eq!(bob_pt.plaintext, plaintext);
 
-    let carol_pt =
-        encrypt::decrypt_file_with_sender(&ciphertext, &carol, &alice_public).unwrap();
+    let carol_pt = encrypt::decrypt_file_with_sender(&ciphertext, &carol, &alice_public).unwrap();
     assert_eq!(carol_pt.plaintext, plaintext);
 }
 
@@ -245,8 +259,7 @@ fn extract_sender_id_from_ciphertext() {
     let bob_public = to_public(&bob);
 
     let ciphertext =
-        encrypt::encrypt_file(b"test", &alice, &[&bob_public], &EncryptOptions::default())
-            .unwrap();
+        encrypt::encrypt_file(b"test", &alice, &[&bob_public], &EncryptOptions::default()).unwrap();
 
     let sender_id = encrypt::extract_sender_id(&ciphertext).unwrap();
     assert_eq!(sender_id, alice.identity_id);
@@ -369,8 +382,7 @@ fn encrypt_decrypt_via_key_package() {
     // Alice encrypts for Bob.
     let plaintext = b"Full roundtrip via key package exchange!";
     let options = EncryptOptions::default();
-    let ciphertext =
-        encrypt::encrypt_file(plaintext, &alice, &[&bob_public], &options).unwrap();
+    let ciphertext = encrypt::encrypt_file(plaintext, &alice, &[&bob_public], &options).unwrap();
 
     // Bob decrypts (store-integrated path looks up Alice as sender).
     let decrypted = encrypt::decrypt_file(&ciphertext, &bob, &store_bob).unwrap();
@@ -406,12 +418,8 @@ fn revoke_identity_marks_local_as_revoked() {
     let alice = fast_create("Alice", b"pass", &store);
     assert_eq!(alice.status, IdentityStatus::Active);
 
-    let _cert_bytes = identity::revoke_identity(
-        &alice,
-        aegispq_api::RevocationReason::Retired,
-        &store,
-    )
-    .unwrap();
+    let _cert_bytes =
+        identity::revoke_identity(&alice, aegispq_api::RevocationReason::Retired, &store).unwrap();
 
     // Reload from store — should now be Revoked.
     let status = identity::load_identity_status(&alice.identity_id, &store).unwrap();
@@ -434,7 +442,12 @@ fn revoked_identity_cannot_encrypt() {
     assert_eq!(alice_revoked.status, IdentityStatus::Revoked);
 
     // Encrypting should fail.
-    let result = encrypt::encrypt_file(b"test", &alice_revoked, &[&bob_public], &EncryptOptions::default());
+    let result = encrypt::encrypt_file(
+        b"test",
+        &alice_revoked,
+        &[&bob_public],
+        &EncryptOptions::default(),
+    );
     assert!(result.is_err());
 }
 
@@ -465,7 +478,13 @@ fn revoked_identity_can_still_decrypt() {
 
     // Encrypt while Alice is still active.
     let plaintext = b"secret message for Bob";
-    let ciphertext = encrypt::encrypt_file(plaintext, &alice, &[&bob_public], &EncryptOptions::default()).unwrap();
+    let ciphertext = encrypt::encrypt_file(
+        plaintext,
+        &alice,
+        &[&bob_public],
+        &EncryptOptions::default(),
+    )
+    .unwrap();
 
     // Revoke Bob.
     identity::revoke_identity(&bob, aegispq_api::RevocationReason::Retired, &store).unwrap();
@@ -530,12 +549,9 @@ fn tampered_revocation_certificate_rejected() {
     let pkg = identity::export_key_package(&alice).unwrap();
     identity::import_key_package(&pkg, &store_bob).unwrap();
 
-    let mut cert_bytes = identity::revoke_identity(
-        &alice,
-        aegispq_api::RevocationReason::Retired,
-        &store_alice,
-    )
-    .unwrap();
+    let mut cert_bytes =
+        identity::revoke_identity(&alice, aegispq_api::RevocationReason::Retired, &store_alice)
+            .unwrap();
 
     // Tamper with the certificate.
     let mid = cert_bytes.len() / 2;
@@ -556,8 +572,7 @@ fn rotate_identity_creates_new_and_marks_old() {
     let alice = fast_create("Alice", b"old_pass", &store);
     let old_id = alice.identity_id;
 
-    let (new_alice, _cert_bytes) =
-        fast_rotate(&alice, "Alice (v2)", b"new_pass", &store);
+    let (new_alice, _cert_bytes) = fast_rotate(&alice, "Alice (v2)", b"new_pass", &store);
 
     // New identity should be active with different ID.
     assert_ne!(new_alice.identity_id, old_id);
@@ -584,8 +599,7 @@ fn import_rotation_certificate_updates_contact() {
     identity::import_key_package(&pkg, &store_bob).unwrap();
 
     // Alice rotates.
-    let (new_alice, cert_bytes) =
-        fast_rotate(&alice, "Alice (v2)", b"new_pass", &store_alice);
+    let (new_alice, cert_bytes) = fast_rotate(&alice, "Alice (v2)", b"new_pass", &store_alice);
 
     // Bob imports the rotation certificate.
     let new_id = identity::import_rotation(&cert_bytes, &store_bob).unwrap();
@@ -616,8 +630,7 @@ fn encrypt_decrypt_after_rotation() {
     identity::import_key_package(&alice_pkg, &store_bob).unwrap();
 
     // Alice rotates.
-    let (new_alice, cert_bytes) =
-        fast_rotate(&alice, "Alice (v2)", b"new_pass", &store_alice);
+    let (new_alice, cert_bytes) = fast_rotate(&alice, "Alice (v2)", b"new_pass", &store_alice);
 
     // Bob imports the rotation certificate and re-imports new Alice as contact.
     identity::import_rotation(&cert_bytes, &store_bob).unwrap();
@@ -651,8 +664,7 @@ fn tampered_rotation_certificate_rejected() {
     let pkg = identity::export_key_package(&alice).unwrap();
     identity::import_key_package(&pkg, &store_bob).unwrap();
 
-    let (_new_alice, mut cert_bytes) =
-        fast_rotate(&alice, "Alice (v2)", b"new_pass", &store_alice);
+    let (_new_alice, mut cert_bytes) = fast_rotate(&alice, "Alice (v2)", b"new_pass", &store_alice);
 
     // Tamper with the certificate.
     let mid = cert_bytes.len() / 2;

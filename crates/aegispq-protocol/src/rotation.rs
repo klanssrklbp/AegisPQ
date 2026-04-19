@@ -193,10 +193,7 @@ fn write_blob(buf: &mut Vec<u8>, data: &[u8]) {
     buf.extend_from_slice(data);
 }
 
-fn read_fixed<const N: usize>(
-    data: &[u8],
-    pos: &mut usize,
-) -> Result<[u8; N], ProtocolError> {
+fn read_fixed<const N: usize>(data: &[u8], pos: &mut usize) -> Result<[u8; N], ProtocolError> {
     if *pos + N > data.len() {
         return Err(ProtocolError::Truncated {
             expected: *pos + N,
@@ -254,11 +251,9 @@ fn read_string(data: &[u8], pos: &mut usize) -> Result<String, ProtocolError> {
             actual: data.len(),
         });
     }
-    let s = std::str::from_utf8(&data[*pos..*pos + len]).map_err(|_| {
-        ProtocolError::Truncated {
-            expected: *pos + len,
-            actual: data.len(),
-        }
+    let s = std::str::from_utf8(&data[*pos..*pos + len]).map_err(|_| ProtocolError::Truncated {
+        expected: *pos + len,
+        actual: data.len(),
     })?;
     *pos += len;
     Ok(s.to_string())

@@ -94,19 +94,18 @@ impl PqSecretKey {
     /// Serialize to bytes. **For key storage only.**
     pub fn to_bytes(&self) -> Vec<u8> {
         let encoded = EncodedSizeUser::as_bytes(&self.inner);
-        let slice: &[u8] = &*encoded;
+        let slice: &[u8] = &encoded;
         slice.to_vec()
     }
 
     /// Deserialize from bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, CoreError> {
         type Dk = <MlKem768 as KemCore>::DecapsulationKey;
-        let encoded: ml_kem::Encoded<Dk> = bytes.try_into().map_err(|_| {
-            CoreError::InvalidKeyLength {
+        let encoded: ml_kem::Encoded<Dk> =
+            bytes.try_into().map_err(|_| CoreError::InvalidKeyLength {
                 expected: PQ_SECRET_KEY_LEN,
                 actual: bytes.len(),
-            }
-        })?;
+            })?;
         Ok(Self {
             inner: Dk::from_bytes(&encoded),
         })
@@ -132,19 +131,18 @@ impl PqPublicKey {
     /// Serialize to bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         let encoded = EncodedSizeUser::as_bytes(&self.inner);
-        let slice: &[u8] = &*encoded;
+        let slice: &[u8] = &encoded;
         slice.to_vec()
     }
 
     /// Deserialize from bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, CoreError> {
         type Ek = <MlKem768 as KemCore>::EncapsulationKey;
-        let encoded: ml_kem::Encoded<Ek> = bytes.try_into().map_err(|_| {
-            CoreError::InvalidKeyLength {
+        let encoded: ml_kem::Encoded<Ek> =
+            bytes.try_into().map_err(|_| CoreError::InvalidKeyLength {
                 expected: PQ_PUBLIC_KEY_LEN,
                 actual: bytes.len(),
-            }
-        })?;
+            })?;
         Ok(Self {
             inner: Ek::from_bytes(&encoded),
         })
@@ -277,11 +275,8 @@ pub fn encapsulate(
         .map_err(|_| CoreError::KemEncapsulationFailed)?;
 
     // Combine shared secrets via HKDF
-    let combined = combine_shared_secrets(
-        classical_shared.as_bytes(),
-        pq_shared.as_ref(),
-        context,
-    )?;
+    let combined =
+        combine_shared_secrets(classical_shared.as_bytes(), pq_shared.as_ref(), context)?;
 
     Ok(HybridEncapsulation {
         classical_ephemeral_pk: ephemeral_public.to_bytes(),
@@ -418,9 +413,9 @@ mod tests {
         // The classical DH will produce a different shared secret, and
         // the ML-KEM decapsulation will produce an implicit reject value.
         // The combined result will differ from what the sender computed.
-        match result {
-            Ok(ss) => assert_ne!(ss.as_bytes(), encap.shared_secret.as_bytes()),
-            Err(_) => {} // Also acceptable if decapsulation fails outright.
+        // Also acceptable if decapsulation fails outright.
+        if let Ok(ss) = result {
+            assert_ne!(ss.as_bytes(), encap.shared_secret.as_bytes());
         }
     }
 
@@ -432,7 +427,10 @@ mod tests {
         let encap = encapsulate(&pk, b"ctx").unwrap();
 
         assert_eq!(encap.classical_ephemeral_pk.len(), 32);
-        assert_eq!(encap.pq_ciphertext.as_bytes().len(), PqCiphertext::expected_len());
+        assert_eq!(
+            encap.pq_ciphertext.as_bytes().len(),
+            PqCiphertext::expected_len()
+        );
         assert_eq!(encap.shared_secret.as_bytes().len(), SHARED_SECRET_LEN);
     }
 }

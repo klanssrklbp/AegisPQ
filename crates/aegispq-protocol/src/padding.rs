@@ -82,7 +82,7 @@ pub fn padded_size(content_len: usize, scheme: PaddingScheme, block_size: usize)
             } else {
                 block_size
             };
-            ((content_len + bs - 1) / bs) * bs
+            content_len.div_ceil(bs) * bs
         }
     }
 }

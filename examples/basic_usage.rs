@@ -34,11 +34,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = EncryptOptions::default();
 
     let ciphertext = aegispq::encrypt::encrypt_file(plaintext, &alice, &[&bob_public], &options)?;
-    println!("Encrypted {} bytes -> {} bytes ciphertext", plaintext.len(), ciphertext.len());
+    println!(
+        "Encrypted {} bytes -> {} bytes ciphertext",
+        plaintext.len(),
+        ciphertext.len()
+    );
 
     let decrypted = aegispq::encrypt::decrypt_file(&ciphertext, &bob, &store)?;
     assert_eq!(&decrypted.plaintext, plaintext);
-    println!("Bob decrypted: {:?}", std::str::from_utf8(&decrypted.plaintext)?);
+    println!(
+        "Bob decrypted: {:?}",
+        std::str::from_utf8(&decrypted.plaintext)?
+    );
     println!("Sender confirmed: Alice\n");
 
     // --- Standalone signing ---
@@ -46,7 +53,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let document = b"I hereby certify this document.";
     let signature = aegispq::sign::sign(&alice, document)?;
-    println!("Signed {} bytes -> {} byte hybrid signature", document.len(), signature.len());
+    println!(
+        "Signed {} bytes -> {} byte hybrid signature",
+        document.len(),
+        signature.len()
+    );
 
     let alice_public = PublicIdentity {
         identity_id: alice.identity_id,
@@ -57,7 +68,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let valid = aegispq::sign::verify(&alice_public, document, &signature)?;
-    println!("Verification: {}\n", if valid { "VALID" } else { "INVALID" });
+    println!(
+        "Verification: {}\n",
+        if valid { "VALID" } else { "INVALID" }
+    );
 
     // --- Streaming encryption ---
     println!("=== Streaming Encryption ===\n");
@@ -74,7 +88,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &[&bob_public],
         &options,
     )?;
-    println!("Streamed {} bytes -> {} bytes", large_data.len(), ciphertext_stream.len());
+    println!(
+        "Streamed {} bytes -> {} bytes",
+        large_data.len(),
+        ciphertext_stream.len()
+    );
 
     let verified = aegispq::encrypt::decrypt_file_stream_verified(
         &mut &ciphertext_stream[..],

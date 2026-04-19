@@ -108,7 +108,9 @@ pub enum Error {
     },
 
     /// Internal error (should not occur; indicates a bug).
-    #[deprecated(note = "All uses have been replaced with specific variants. Will be removed in 0.2.")]
+    #[deprecated(
+        note = "All uses have been replaced with specific variants. Will be removed in 0.2."
+    )]
     #[error("internal error")]
     Internal,
 

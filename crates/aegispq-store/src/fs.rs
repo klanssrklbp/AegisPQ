@@ -234,7 +234,7 @@ fn list_ids(dir: &Path, extension: &str) -> Result<Vec<[u8; 16]>, StoreError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::record::{IdentityStatus, ContactRecord};
+    use crate::record::{ContactRecord, IdentityStatus};
 
     fn temp_store() -> (tempfile::TempDir, FileStore) {
         let dir = tempfile::tempdir().unwrap();
@@ -437,7 +437,9 @@ mod tests {
         let record = sample_identity(0x42);
         store.save_identity(&record).unwrap();
 
-        let tmp_path = store.identity_path(&record.identity_id).with_extension("tmp");
+        let tmp_path = store
+            .identity_path(&record.identity_id)
+            .with_extension("tmp");
         assert!(!tmp_path.exists());
     }
 }

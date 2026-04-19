@@ -104,7 +104,12 @@ pub struct KeyPackage {
 impl KeyPackage {
     /// Compute the fingerprint of this key package.
     pub fn fingerprint(&self) -> Fingerprint {
-        compute_fingerprint(&self.ed25519_pk, &self.ml_dsa_pk, &self.x25519_pk, &self.ml_kem_pk)
+        compute_fingerprint(
+            &self.ed25519_pk,
+            &self.ml_dsa_pk,
+            &self.x25519_pk,
+            &self.ml_kem_pk,
+        )
     }
 
     /// Serialize the key package to bytes (without signature, for signing).
@@ -116,7 +121,12 @@ impl KeyPackage {
         buf.extend_from_slice(&(name_bytes.len() as u16).to_be_bytes());
         buf.extend_from_slice(name_bytes);
         // Public keys (fixed size, but length-prefixed for safety).
-        for pk in [&self.ed25519_pk, &self.ml_dsa_pk, &self.x25519_pk, &self.ml_kem_pk] {
+        for pk in [
+            &self.ed25519_pk,
+            &self.ml_dsa_pk,
+            &self.x25519_pk,
+            &self.ml_kem_pk,
+        ] {
             buf.extend_from_slice(&(pk.len() as u16).to_be_bytes());
             buf.extend_from_slice(pk);
         }

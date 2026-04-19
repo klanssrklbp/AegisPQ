@@ -10,7 +10,7 @@
 //! truncated variants, magic-corrupted variants, and zero-length inputs.
 //! The fuzzer uses these as starting points for mutation-based exploration.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use aegispq_protocol::envelope::{Header, HEADER_SIZE};
 use aegispq_protocol::identity::{KeyPackage, IDENTITY_ID_LEN};
@@ -31,7 +31,7 @@ fn corpus_dir(target: &str) -> PathBuf {
     dir
 }
 
-fn write_seed(dir: &PathBuf, name: &str, data: &[u8]) {
+fn write_seed(dir: &Path, name: &str, data: &[u8]) {
     std::fs::write(dir.join(name), data).unwrap();
 }
 

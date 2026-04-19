@@ -5,11 +5,11 @@
 use std::path::PathBuf;
 use std::process;
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
-use aegispq_api::{encrypt, identity, sign, RevocationReason};
 use aegispq_api::error::Error as ApiError;
 use aegispq_api::types::EncryptOptions;
+use aegispq_api::{encrypt, identity, sign, RevocationReason};
 use aegispq_core::kdf::Argon2Params;
 use aegispq_protocol::padding::PaddingScheme;
 use aegispq_protocol::Suite;
@@ -94,7 +94,7 @@ enum Commands {
         /// Local identity ID (hex) to sign with.
         #[arg(long)]
         identity: String,
-        /// Output path (default: <file>.apq).
+        /// Output path (default: `<file>.apq`).
         #[arg(long, short)]
         output: Option<PathBuf>,
         /// Algorithm suite: aes (default) or xchacha.
@@ -109,7 +109,7 @@ enum Commands {
         /// Local identity ID (hex) to decrypt with.
         #[arg(long)]
         identity: String,
-        /// Output path (default: strip .apq extension, or <file>.dec).
+        /// Output path (default: strip .apq extension, or `<file>.dec`).
         #[arg(long, short)]
         output: Option<PathBuf>,
     },
@@ -121,7 +121,7 @@ enum Commands {
         /// Local identity ID (hex) to sign with.
         #[arg(long)]
         identity: String,
-        /// Output path for the signature (default: <file>.apqsig).
+        /// Output path for the signature (default: `<file>.apqsig`).
         #[arg(long, short)]
         output: Option<PathBuf>,
     },
@@ -139,6 +139,12 @@ enum Commands {
     },
     /// Show version, protocol, and capability information.
     Version,
+    /// Generate shell completions for Bash, Zsh, Fish, PowerShell, or Elvish.
+    Completions {
+        /// Shell to generate completions for.
+        #[arg(value_enum)]
+        shell: clap_complete::Shell,
+    },
 }
 
 #[derive(Subcommand)]
@@ -155,7 +161,7 @@ enum IdentityAction {
     Export {
         /// Identity ID (hex).
         id: String,
-        /// Output file path (default: <id>.pub.apq).
+        /// Output file path (default: `<id>.pub.apq`).
         #[arg(long, short)]
         output: Option<PathBuf>,
     },
@@ -166,7 +172,7 @@ enum IdentityAction {
         /// Revocation reason: compromised, superseded, or retired.
         #[arg(long, default_value = "retired")]
         reason: String,
-        /// Output path for the revocation certificate (default: <id>.rev.apq).
+        /// Output path for the revocation certificate (default: `<id>.rev.apq`).
         #[arg(long, short)]
         output: Option<PathBuf>,
     },
@@ -177,7 +183,7 @@ enum IdentityAction {
         /// Display name for the new identity (defaults to old name).
         #[arg(long)]
         name: Option<String>,
-        /// Output path for the rotation certificate (default: <id>.rot.apq).
+        /// Output path for the rotation certificate (default: `<id>.rot.apq`).
         #[arg(long, short)]
         output: Option<PathBuf>,
     },
@@ -291,8 +297,10 @@ fn classify_error(e: &(dyn std::error::Error + 'static)) -> (&'static str, i32) 
         ("auth", EXIT_AUTH)
     } else if msg.contains("No such file") || msg.contains("not found") {
         ("io", EXIT_IO)
-    } else if msg.contains("identity ID must be") || msg.contains("no recipients specified")
-        || msg.contains("unknown suite") || msg.contains("unknown revocation reason")
+    } else if msg.contains("identity ID must be")
+        || msg.contains("no recipients specified")
+        || msg.contains("unknown suite")
+        || msg.contains("unknown revocation reason")
     {
         ("usage", EXIT_USAGE)
     } else if msg.contains("Invalid character") || msg.contains("Odd number of digits") {
@@ -306,9 +314,19 @@ fn classify_error(e: &(dyn std::error::Error + 'static)) -> (&'static str, i32) 
 fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     let json = cli.json;
 
-    // Version command does not require the store.
-    if let Commands::Version = &cli.command {
-        return run_version(json);
+    // Commands that don't require the store.
+    match &cli.command {
+        Commands::Version => return run_version(json),
+        Commands::Completions { shell } => {
+            clap_complete::generate(
+                *shell,
+                &mut Cli::command(),
+                "aegispq",
+                &mut std::io::stdout(),
+            );
+            return Ok(());
+        }
+        _ => {}
     }
 
     let store = open_store(cli.data_dir.as_deref())?;
@@ -316,7 +334,7 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Commands::Identity { action } => run_identity(action, json, &store),
         Commands::Contact { action } => run_contact(action, json, &store),
-        Commands::Version => unreachable!(), // handled above
+        Commands::Version | Commands::Completions { .. } => unreachable!(), // handled above
         Commands::Encrypt {
             file,
             recipients,
@@ -338,7 +356,15 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             if all_recipients.is_empty() {
                 return Err("no recipients specified (use --to or --recipients-file)".into());
             }
-            run_encrypt(&file, &all_recipients, &id, output.as_deref(), &suite, json, &store)
+            run_encrypt(
+                &file,
+                &all_recipients,
+                &id,
+                output.as_deref(),
+                &suite,
+                json,
+                &store,
+            )
         }
         Commands::Decrypt {
             file,
@@ -577,7 +603,9 @@ fn run_identity(
                     "identities": entries,
                 }));
             } else if ids.is_empty() {
-                println!("No identities found. Create one with: aegispq identity create --name <name>");
+                println!(
+                    "No identities found. Create one with: aegispq identity create --name <name>"
+                );
             } else {
                 for id in &ids {
                     let name = identity::load_identity_name(id, store)
@@ -704,7 +732,11 @@ fn run_identity(
                     "status": status,
                 }));
             } else {
-                println!("Identity: {} ({})", ident.display_name, format_id(&ident.identity_id));
+                println!(
+                    "Identity: {} ({})",
+                    ident.display_name,
+                    format_id(&ident.identity_id)
+                );
                 println!("  Fingerprint: {fp}");
                 println!("  Status:      {status}");
                 println!();
@@ -739,11 +771,18 @@ fn run_contact(
                     "status": status_str(public.status),
                 }));
             } else {
-                println!("Contact imported: {} ({})", public.display_name, format_id(&public.identity_id));
+                println!(
+                    "Contact imported: {} ({})",
+                    public.display_name,
+                    format_id(&public.identity_id)
+                );
                 println!();
                 println!("  Fingerprint: {fp}");
                 println!();
-                println!("  IMPORTANT: Verify this fingerprint with {} via a trusted", public.display_name);
+                println!(
+                    "  IMPORTANT: Verify this fingerprint with {} via a trusted",
+                    public.display_name
+                );
                 println!("  channel (phone, in person) before encrypting sensitive data.");
             }
         }
@@ -762,7 +801,11 @@ fn run_contact(
                     "status": "revoked",
                 }));
             } else {
-                println!("Revocation imported for: {} ({})", name, format_id(&revoked_id));
+                println!(
+                    "Revocation imported for: {} ({})",
+                    name,
+                    format_id(&revoked_id)
+                );
                 println!("  Status: REVOKED");
                 println!();
                 println!("  This contact's keys are no longer trusted for new encryption.");
@@ -841,7 +884,11 @@ fn run_contact(
                     "status": status,
                 }));
             } else {
-                println!("Contact: {} ({})", public.display_name, format_id(&public.identity_id));
+                println!(
+                    "Contact: {} ({})",
+                    public.display_name,
+                    format_id(&public.identity_id)
+                );
                 println!("  Fingerprint: {fp}");
                 println!("  Status:      {status}");
                 println!();
@@ -876,8 +923,7 @@ fn run_encrypt(
         let contact = identity::load_contact(&rid_bytes, store)?;
         recipients.push(contact);
     }
-    let recipient_refs: Vec<&aegispq_api::types::PublicIdentity> =
-        recipients.iter().collect();
+    let recipient_refs: Vec<&aegispq_api::types::PublicIdentity> = recipients.iter().collect();
 
     let suite_name = suite;
     let suite = match suite {
@@ -891,17 +937,15 @@ fn run_encrypt(
         chunk_size: 0,
     };
 
-    let out_path = output
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| {
-            let mut p = file.to_path_buf();
-            let ext = p
-                .extension()
-                .map(|e| format!("{}.apq", e.to_string_lossy()))
-                .unwrap_or_else(|| "apq".to_string());
-            p.set_extension(ext);
-            p
-        });
+    let out_path = output.map(|p| p.to_path_buf()).unwrap_or_else(|| {
+        let mut p = file.to_path_buf();
+        let ext = p
+            .extension()
+            .map(|e| format!("{}.apq", e.to_string_lossy()))
+            .unwrap_or_else(|| "apq".to_string());
+        p.set_extension(ext);
+        p
+    });
 
     let input_size = std::fs::metadata(file)?.len();
     let mut input_file = std::fs::File::open(file)?;
@@ -956,43 +1000,34 @@ fn run_decrypt(
     let recipient = identity::load_identity(&identity_id, &passphrase, store)?;
     passphrase.zeroize();
 
-    let out_path = output
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| {
-            let p = file.to_path_buf();
-            // Strip .apq extension if present.
-            match p.extension() {
-                Some(ext) => {
-                    let ext_str = ext.to_string_lossy();
-                    if ext_str.ends_with(".apq") || ext_str == "apq" {
-                        p.with_extension("")
-                    } else {
-                        p.with_extension(format!("{ext_str}.dec"))
-                    }
+    let out_path = output.map(|p| p.to_path_buf()).unwrap_or_else(|| {
+        let p = file.to_path_buf();
+        // Strip .apq extension if present.
+        match p.extension() {
+            Some(ext) => {
+                let ext_str = ext.to_string_lossy();
+                if ext_str.ends_with(".apq") || ext_str == "apq" {
+                    p.with_extension("")
+                } else {
+                    p.with_extension(format!("{ext_str}.dec"))
                 }
-                None => p.with_extension("dec"),
             }
-        });
+            None => p.with_extension("dec"),
+        }
+    });
 
     // Decrypt to a temp file in the same directory, then atomically rename.
     // This ensures no plaintext is left on disk if signature verification fails.
     let out_dir = out_path.parent().unwrap_or(std::path::Path::new("."));
-    let temp_name = format!(
-        ".aegispq-dec-{}.tmp",
-        std::process::id()
-    );
+    let temp_name = format!(".aegispq-dec-{}.tmp", std::process::id());
     let temp_path = out_dir.join(&temp_name);
 
     // Read the encrypted file and stream-decrypt into the temp file.
     let ciphertext = std::fs::read(file)?;
     let result = {
         let mut temp_file = std::fs::File::create(&temp_path)?;
-        let r = encrypt::decrypt_file_stream_with_store(
-            &ciphertext,
-            &mut temp_file,
-            &recipient,
-            store,
-        );
+        let r =
+            encrypt::decrypt_file_stream_with_store(&ciphertext, &mut temp_file, &recipient, store);
         // Flush before rename.
         if r.is_ok() {
             use std::io::Write;
@@ -1021,7 +1056,11 @@ fn run_decrypt(
                 }));
             } else {
                 println!("Decrypted: {} -> {}", file.display(), out_path.display());
-                println!("  Sender verified: {} ({})", sender_name, format_id(&sender_id));
+                println!(
+                    "  Sender verified: {} ({})",
+                    sender_name,
+                    format_id(&sender_id)
+                );
                 println!("  {} bytes recovered", bytes_written);
             }
             Ok(())
@@ -1054,17 +1093,15 @@ fn run_sign(
     let data = std::fs::read(file)?;
     let sig_bytes = sign::sign(&ident, &data)?;
 
-    let out_path = output
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| {
-            let mut p = file.to_path_buf();
-            let ext = p
-                .extension()
-                .map(|e| format!("{}.apqsig", e.to_string_lossy()))
-                .unwrap_or_else(|| "apqsig".to_string());
-            p.set_extension(ext);
-            p
-        });
+    let out_path = output.map(|p| p.to_path_buf()).unwrap_or_else(|| {
+        let mut p = file.to_path_buf();
+        let ext = p
+            .extension()
+            .map(|e| format!("{}.apqsig", e.to_string_lossy()))
+            .unwrap_or_else(|| "apqsig".to_string());
+        p.set_extension(ext);
+        p
+    });
 
     std::fs::write(&out_path, &sig_bytes)?;
 
@@ -1108,7 +1145,11 @@ fn run_verify(
             }));
         } else {
             println!("Signature VALID.");
-            println!("  Signer: {} ({})", signer.display_name, format_id(&signer_id));
+            println!(
+                "  Signer: {} ({})",
+                signer.display_name,
+                format_id(&signer_id)
+            );
         }
         Ok(())
     } else {

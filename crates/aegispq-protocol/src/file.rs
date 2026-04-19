@@ -165,7 +165,7 @@ pub fn encrypt(
         aead::Algorithm::XChaCha20Poly1305 => None,
     };
 
-    let total_chunks = (padded.len() + chunk_size as usize - 1) / chunk_size as usize;
+    let total_chunks = padded.len().div_ceil(chunk_size as usize);
     let mut encrypted_chunks: Vec<Vec<u8>> = Vec::with_capacity(total_chunks);
 
     for (i, chunk_data) in padded.chunks(chunk_size as usize).enumerate() {
@@ -305,11 +305,10 @@ pub fn decrypt(
     // Chunk metadata.
     let chunk_size = read_u32(payload, &mut pos)?;
     let padding_scheme_byte = read_byte(payload, &mut pos)?;
-    let _padding_scheme = PaddingScheme::from_byte(padding_scheme_byte).ok_or(
-        ProtocolError::UnknownFormat {
+    let _padding_scheme =
+        PaddingScheme::from_byte(padding_scheme_byte).ok_or(ProtocolError::UnknownFormat {
             found: padding_scheme_byte,
-        },
-    )?;
+        })?;
 
     // Encrypted chunks.
     let num_chunks = read_u32(payload, &mut pos)?;
@@ -358,8 +357,13 @@ pub fn decrypt(
 
     // --- Verify signature BEFORE any decryption ---
     let payload_hash = hash::blake3_hash(signed_data);
-    sig::verify(sender_verifying_key, FILE_SIGN_DOMAIN, &payload_hash, &signature)
-        .map_err(|_| ProtocolError::AuthenticationFailed)?;
+    sig::verify(
+        sender_verifying_key,
+        FILE_SIGN_DOMAIN,
+        &payload_hash,
+        &signature,
+    )
+    .map_err(|_| ProtocolError::AuthenticationFailed)?;
 
     // --- Find matching recipient slot ---
     let slot = slots
@@ -381,10 +385,11 @@ pub fn decrypt(
     for (i, encrypted_chunk) in encrypted_chunks.iter().enumerate() {
         let is_final = i == encrypted_chunks.len() - 1;
         let aad = chunk_aad(&file_id, i as u32, is_final);
-        let chunk_plaintext = aead::open(algorithm, &fek, &aad, encrypted_chunk)
-            .map_err(|_| ProtocolError::IntegrityError {
+        let chunk_plaintext = aead::open(algorithm, &fek, &aad, encrypted_chunk).map_err(|_| {
+            ProtocolError::IntegrityError {
                 chunk_index: i as u32,
-            })?;
+            }
+        })?;
         reassembled.extend_from_slice(&chunk_plaintext);
     }
 
@@ -417,7 +422,12 @@ fn build_recipient_slot(
         recipient.identity_id.as_ref(),
         encap.classical_ephemeral_pk.as_ref(),
     ]);
-    let kek_derived = kdf::hkdf_sha512(FILE_KEK_DOMAIN, encap.shared_secret.as_bytes(), &kek_info, 32)?;
+    let kek_derived = kdf::hkdf_sha512(
+        FILE_KEK_DOMAIN,
+        encap.shared_secret.as_bytes(),
+        &kek_info,
+        32,
+    )?;
     let kek = aead::AeadKey::from_slice(kek_derived.as_bytes())?;
 
     // Wrap FEK under KEK with AES-256-GCM (always, regardless of suite).
@@ -461,7 +471,12 @@ fn unwrap_fek(
 
     // Unwrap FEK.
     let wrap_aad = build_wrap_aad(file_id, sender_identity_id, recipient_identity_id);
-    let fek_bytes = aead::open(aead::Algorithm::Aes256Gcm, &kek, &wrap_aad, &slot.wrapped_fek)?;
+    let fek_bytes = aead::open(
+        aead::Algorithm::Aes256Gcm,
+        &kek,
+        &wrap_aad,
+        &slot.wrapped_fek,
+    )?;
 
     Ok(aead::AeadKey::from_slice(&fek_bytes)?)
 }
@@ -574,10 +589,7 @@ fn read_fixed<const N: usize>(data: &[u8], pos: &mut usize) -> Result<[u8; N], P
     Ok(arr)
 }
 
-fn read_length_prefixed(
-    data: &[u8],
-    pos: &mut usize,
-) -> Result<Vec<u8>, ProtocolError> {
+fn read_length_prefixed(data: &[u8], pos: &mut usize) -> Result<Vec<u8>, ProtocolError> {
     let len = read_u16(data, pos)? as usize;
     if *pos + len > data.len() {
         return Err(ProtocolError::Truncated {
@@ -610,6 +622,7 @@ fn concat_slices(slices: &[&[u8]]) -> Vec<u8> {
 /// The `input_size` must be known upfront to compute the padded size and header.
 ///
 /// Memory usage is O(chunk_size) rather than O(file_size).
+#[allow(clippy::too_many_arguments)]
 pub fn encrypt_stream<R: std::io::Read, W: std::io::Write>(
     input: &mut R,
     output: &mut W,
@@ -671,7 +684,7 @@ pub fn encrypt_stream<R: std::io::Read, W: std::io::Write>(
         aead::Algorithm::XChaCha20Poly1305 => None,
     };
 
-    let total_chunks = (padded_len + chunk_size as usize - 1) / chunk_size as usize;
+    let total_chunks = padded_len.div_ceil(chunk_size as usize);
 
     // Pre-compute chunk sizes to determine total payload length.
     let aead_overhead = algorithm.overhead();
@@ -754,7 +767,13 @@ pub fn encrypt_stream<R: std::io::Read, W: std::io::Write>(
 
         let is_final = i == total_chunks - 1;
         let aad = chunk_aad(&file_id, i as u32, is_final);
-        let ct = aead::seal(algorithm, &fek, &aad, &chunk_buf[..this_chunk_size], nonce_gen.as_mut())?;
+        let ct = aead::seal(
+            algorithm,
+            &fek,
+            &aad,
+            &chunk_buf[..this_chunk_size],
+            nonce_gen.as_mut(),
+        )?;
 
         let ct_len = ct.len() as u32;
         write_and_hash(output, &mut hasher, &ct_len.to_be_bytes())?;
@@ -794,9 +813,7 @@ pub fn decrypt_stream<R: std::io::Read, W: std::io::Write>(
 ) -> Result<u64, ProtocolError> {
     // --- Read envelope header ---
     let mut header_buf = [0u8; HEADER_SIZE];
-    input
-        .read_exact(&mut header_buf)
-        .map_err(io_to_proto)?;
+    input.read_exact(&mut header_buf).map_err(io_to_proto)?;
     let header = Header::from_bytes(&header_buf)?;
 
     if header.format_type != FormatType::EncryptedFile {
@@ -890,8 +907,7 @@ pub fn decrypt_stream<R: std::io::Read, W: std::io::Write>(
                     actual: chunk_pt.len(),
                 });
             }
-            let orig_len =
-                u32::from_be_bytes([chunk_pt[0], chunk_pt[1], chunk_pt[2], chunk_pt[3]]);
+            let orig_len = u32::from_be_bytes([chunk_pt[0], chunk_pt[1], chunk_pt[2], chunk_pt[3]]);
             original_plaintext_len = Some(orig_len);
 
             // Write the actual plaintext portion (skip 4-byte prefix, truncate padding).
@@ -916,9 +932,7 @@ pub fn decrypt_stream<R: std::io::Read, W: std::io::Write>(
 
     // --- Read and verify signature ---
     let mut sig_len_bytes = [0u8; 2];
-    input
-        .read_exact(&mut sig_len_bytes)
-        .map_err(io_to_proto)?;
+    input.read_exact(&mut sig_len_bytes).map_err(io_to_proto)?;
     let sig_len = u16::from_be_bytes(sig_len_bytes) as usize;
 
     let mut sig_bytes = vec![0u8; sig_len];
@@ -926,8 +940,13 @@ pub fn decrypt_stream<R: std::io::Read, W: std::io::Write>(
 
     let payload_hash = hasher.finalize();
     let signature = sig::HybridSignature::from_bytes(&sig_bytes)?;
-    sig::verify(sender_verifying_key, FILE_SIGN_DOMAIN, &payload_hash, &signature)
-        .map_err(|_| ProtocolError::AuthenticationFailed)?;
+    sig::verify(
+        sender_verifying_key,
+        FILE_SIGN_DOMAIN,
+        &payload_hash,
+        &signature,
+    )
+    .map_err(|_| ProtocolError::AuthenticationFailed)?;
 
     // Reject trailing bytes beyond the signature (parity with in-memory path).
     let mut trailing = [0u8; 1];
@@ -964,7 +983,12 @@ struct PaddedReader<'a, R> {
 }
 
 impl<'a, R: std::io::Read> PaddedReader<'a, R> {
-    fn new(inner: &'a mut R, prefix: &'a [u8], plaintext_len: u64, total_padded_len: usize) -> Self {
+    fn new(
+        inner: &'a mut R,
+        prefix: &'a [u8],
+        plaintext_len: u64,
+        total_padded_len: usize,
+    ) -> Self {
         let padding_len = total_padded_len - prefix.len() - plaintext_len as usize;
         Self {
             inner,
@@ -993,8 +1017,7 @@ impl<R: std::io::Read> std::io::Read for PaddedReader<'_, R> {
 
         // Phase 2: read from inner reader.
         while written < buf.len() && self.plaintext_remaining > 0 {
-            let to_read =
-                (buf.len() - written).min(self.plaintext_remaining as usize);
+            let to_read = (buf.len() - written).min(self.plaintext_remaining as usize);
             match self.inner.read(&mut buf[written..written + to_read])? {
                 0 => {
                     // Inner reader short — treat remaining as padding.

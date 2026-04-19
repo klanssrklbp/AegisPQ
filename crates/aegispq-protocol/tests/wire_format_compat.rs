@@ -29,7 +29,10 @@ use aegispq_protocol::{version, FormatType, Suite, MAGIC};
 
 #[test]
 fn envelope_header_is_exactly_twelve_bytes() {
-    assert_eq!(HEADER_SIZE, 12, "envelope header size is part of the stable v1 wire format");
+    assert_eq!(
+        HEADER_SIZE, 12,
+        "envelope header size is part of the stable v1 wire format"
+    );
 }
 
 #[test]
@@ -52,7 +55,11 @@ fn envelope_header_field_positions_are_stable() {
     let bytes = header.to_bytes();
 
     // Magic occupies bytes 0..4
-    assert_eq!(&bytes[0..4], &[0x41, 0x50, 0x51, 0x01], "magic bytes misaligned");
+    assert_eq!(
+        &bytes[0..4],
+        &[0x41, 0x50, 0x51, 0x01],
+        "magic bytes misaligned"
+    );
 
     // Format type at offset 4 (EncryptedFile = 0x01)
     assert_eq!(bytes[4], 0x01, "format_type byte misaligned");
@@ -64,7 +71,11 @@ fn envelope_header_field_positions_are_stable() {
     assert_eq!(bytes[7], 0x01, "suite byte misaligned");
 
     // Payload length (big-endian) at offsets 8..12
-    assert_eq!(&bytes[8..12], &[0x12, 0x34, 0x56, 0x78], "payload_length bytes misaligned");
+    assert_eq!(
+        &bytes[8..12],
+        &[0x12, 0x34, 0x56, 0x78],
+        "payload_length bytes misaligned"
+    );
 }
 
 #[test]
@@ -87,16 +98,17 @@ fn envelope_header_all_format_types_encode_to_their_expected_byte() {
             payload_length: 0,
         };
         let bytes = h.to_bytes();
-        assert_eq!(bytes[4], *expected, "format_type {:?} must encode to {:#x}", ft, expected);
+        assert_eq!(
+            bytes[4], *expected,
+            "format_type {:?} must encode to {:#x}",
+            ft, expected
+        );
     }
 }
 
 #[test]
 fn envelope_header_all_suites_encode_to_their_expected_byte() {
-    let cases: &[(Suite, u8)] = &[
-        (Suite::HybridV1, 0x01),
-        (Suite::HybridV1XChaCha, 0x02),
-    ];
+    let cases: &[(Suite, u8)] = &[(Suite::HybridV1, 0x01), (Suite::HybridV1XChaCha, 0x02)];
     for (suite, expected) in cases {
         let h = Header {
             format_type: FormatType::EncryptedFile,
@@ -105,7 +117,11 @@ fn envelope_header_all_suites_encode_to_their_expected_byte() {
             payload_length: 0,
         };
         let bytes = h.to_bytes();
-        assert_eq!(bytes[7], *expected, "suite {:?} must encode to {:#x}", suite, expected);
+        assert_eq!(
+            bytes[7], *expected,
+            "suite {:?} must encode to {:#x}",
+            suite, expected
+        );
     }
 }
 
@@ -153,8 +169,15 @@ fn revocation_certificate_starts_with_envelope_header() {
     };
     let bytes = cert.to_bytes();
 
-    assert!(bytes.len() >= HEADER_SIZE, "certificate shorter than header");
-    assert_eq!(&bytes[0..4], &MAGIC, "revocation cert must start with magic");
+    assert!(
+        bytes.len() >= HEADER_SIZE,
+        "certificate shorter than header"
+    );
+    assert_eq!(
+        &bytes[0..4],
+        &MAGIC,
+        "revocation cert must start with magic"
+    );
     assert_eq!(
         bytes[4],
         FormatType::RevocationCertificate as u8,
@@ -186,7 +209,10 @@ fn rotation_certificate_starts_with_envelope_header() {
     };
     let bytes = cert.to_bytes();
 
-    assert!(bytes.len() >= HEADER_SIZE, "certificate shorter than header");
+    assert!(
+        bytes.len() >= HEADER_SIZE,
+        "certificate shorter than header"
+    );
     assert_eq!(&bytes[0..4], &MAGIC, "rotation cert must start with magic");
     assert_eq!(
         bytes[4],

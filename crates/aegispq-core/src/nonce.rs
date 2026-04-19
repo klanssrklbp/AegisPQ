@@ -68,7 +68,7 @@ impl GcmNonceGenerator {
     ///
     /// Returns an error if the counter has been exhausted (2^32 encryptions).
     /// When this happens, the key must be rotated.
-    pub fn next(&mut self) -> Result<[u8; GCM_NONCE_LEN], CoreError> {
+    pub fn next_nonce(&mut self) -> Result<[u8; GCM_NONCE_LEN], CoreError> {
         if self.counter == GCM_MAX_COUNTER {
             return Err(CoreError::NonceExhausted);
         }
@@ -77,7 +77,10 @@ impl GcmNonceGenerator {
         nonce[..4].copy_from_slice(&self.counter.to_be_bytes());
         nonce[4..].copy_from_slice(&self.random_part);
 
-        self.counter = self.counter.checked_add(1).ok_or(CoreError::NonceExhausted)?;
+        self.counter = self
+            .counter
+            .checked_add(1)
+            .ok_or(CoreError::NonceExhausted)?;
 
         Ok(nonce)
     }
@@ -123,8 +126,8 @@ mod tests {
     #[test]
     fn gcm_nonces_are_unique() {
         let mut gen = GcmNonceGenerator::new().unwrap();
-        let n1 = gen.next().unwrap();
-        let n2 = gen.next().unwrap();
+        let n1 = gen.next_nonce().unwrap();
+        let n2 = gen.next_nonce().unwrap();
         assert_ne!(n1, n2);
     }
 
@@ -132,27 +135,27 @@ mod tests {
     fn gcm_counter_increments() {
         let mut gen = GcmNonceGenerator::new().unwrap();
         assert_eq!(gen.counter(), 0);
-        let _ = gen.next().unwrap();
+        let _ = gen.next_nonce().unwrap();
         assert_eq!(gen.counter(), 1);
-        let _ = gen.next().unwrap();
+        let _ = gen.next_nonce().unwrap();
         assert_eq!(gen.counter(), 2);
     }
 
     #[test]
     fn gcm_nonce_has_counter_prefix() {
         let mut gen = GcmNonceGenerator::new().unwrap();
-        let n0 = gen.next().unwrap();
+        let n0 = gen.next_nonce().unwrap();
         assert_eq!(&n0[..4], &0u32.to_be_bytes());
 
-        let n1 = gen.next().unwrap();
+        let n1 = gen.next_nonce().unwrap();
         assert_eq!(&n1[..4], &1u32.to_be_bytes());
     }
 
     #[test]
     fn gcm_nonce_random_part_is_stable() {
         let mut gen = GcmNonceGenerator::new().unwrap();
-        let n0 = gen.next().unwrap();
-        let n1 = gen.next().unwrap();
+        let n0 = gen.next_nonce().unwrap();
+        let n1 = gen.next_nonce().unwrap();
         // Random suffix is the same across nonces from the same generator.
         assert_eq!(&n0[4..], &n1[4..]);
     }
@@ -162,7 +165,7 @@ mod tests {
         let random_part = [0xAA; 8];
         let mut gen = GcmNonceGenerator::restore(random_part, 100);
         assert_eq!(gen.counter(), 100);
-        let nonce = gen.next().unwrap();
+        let nonce = gen.next_nonce().unwrap();
         assert_eq!(&nonce[..4], &100u32.to_be_bytes());
         assert_eq!(gen.counter(), 101);
     }
@@ -170,7 +173,7 @@ mod tests {
     #[test]
     fn gcm_exhaustion() {
         let mut gen = GcmNonceGenerator::restore([0; 8], GCM_MAX_COUNTER);
-        assert!(gen.next().is_err());
+        assert!(gen.next_nonce().is_err());
     }
 
     #[test]
