@@ -104,6 +104,21 @@ In exceptional cases (e.g., active exploitation in the wild), the timeline
 may be accelerated. Maintainers and reporters should communicate openly
 about any timeline adjustments.
 
+## Verifying Downloads
+
+Binary releases on the [releases page](https://github.com/klanssrklbp/AegisPQ/releases)
+are signed with [cosign](https://github.com/sigstore/cosign) keyless signing
+via GitHub Actions' OIDC identity (logged to the Rekor transparency log)
+and carry [SLSA v1](https://slsa.dev/) build-provenance attestations.
+
+**Do not install a release binary that fails any of the three verification
+layers** — checksum, cosign signature, and build-provenance attestation.
+See [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md) for the
+step-by-step procedure.
+
+A failed verification on an asset downloaded directly from GitHub is a
+supply-chain incident; report it via the private advisory process above.
+
 ## Security Design
 
 For a detailed description of AegisPQ's threat model, cryptographic

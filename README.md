@@ -30,16 +30,53 @@ AegisPQ is an open-source Rust toolkit for **hybrid post-quantum file encryption
 
 ## Install
 
+### Pre-built binary (recommended)
+
+Pre-built binaries for Linux (x86_64, aarch64), macOS (x86_64, aarch64), and Windows (x86_64) are published on the [releases page](https://github.com/klanssrklbp/AegisPQ/releases). Every release is signed with [cosign](https://github.com/sigstore/cosign) keyless signing via GitHub's OIDC identity and carries a [SLSA v1](https://slsa.dev/) build-provenance attestation.
+
 ```bash
-# From source (requires Rust 1.80+):
+# Pick the release and target triple that match your platform:
+VER=v0.1.0
+TARGET=x86_64-unknown-linux-gnu   # or aarch64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin, x86_64-pc-windows-msvc
+BASE=https://github.com/klanssrklbp/AegisPQ/releases/download/$VER
+
+# Download the archive, the canonical SHA256SUMS manifest, and the cosign material for the manifest.
+curl -fLO "$BASE/aegispq-$VER-$TARGET.tar.gz"
+curl -fLO "$BASE/SHA256SUMS"
+curl -fLO "$BASE/SHA256SUMS.sig"
+curl -fLO "$BASE/SHA256SUMS.pem"
+
+# 1. Verify the archive's digest is in the manifest.
+sha256sum --check --ignore-missing SHA256SUMS
+
+# 2. Verify the manifest itself was signed by *this* repo's release.yml workflow.
+cosign verify-blob \
+  --certificate       SHA256SUMS.pem \
+  --signature         SHA256SUMS.sig \
+  --certificate-identity-regexp \
+      '^https://github\.com/klanssrklbp/AegisPQ/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer  https://token.actions.githubusercontent.com \
+  SHA256SUMS
+
+# 3. Install.
+tar xzf "aegispq-$VER-$TARGET.tar.gz"
+sudo install "aegispq-$VER-$TARGET/aegispq" /usr/local/bin/aegispq
+```
+
+See [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md) for the full three-layer verification procedure (checksums + cosign + `gh attestation verify`).
+
+### From source
+
+```bash
+# Requires Rust 1.80+:
 cargo install --path crates/aegispq-cli
 
-# Or build a release binary:
+# Or build a release binary manually:
 ./scripts/build-release.sh
 sudo cp target/release/aegispq /usr/local/bin/
 ```
 
-Verify and inspect capabilities:
+### Inspect and complete
 
 ```bash
 aegispq --version             # Version string
@@ -52,8 +89,6 @@ Shell completions (Bash, Zsh, Fish, PowerShell, Elvish):
 aegispq completions bash > /etc/bash_completion.d/aegispq
 aegispq completions zsh  > "${fpath[1]}/_aegispq"
 ```
-
-Pre-built binaries on the [releases page](https://github.com/klanssrklbp/AegisPQ/releases) are signed with cosign keyless signing and carry SLSA build provenance attestations. See [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md) for verification steps.
 
 ## Quick Start
 
