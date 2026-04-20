@@ -4,7 +4,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/klanssrklbp/AegisPQ/actions"><img src="https://img.shields.io/github/actions/workflow/status/klanssrklbp/AegisPQ/ci.yml?branch=main&label=CI" alt="CI"></a>
+  <a href="https://github.com/klanssrklbp/AegisPQ/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/klanssrklbp/AegisPQ/ci.yml?branch=main&label=CI" alt="CI"></a>
+  <a href="https://github.com/klanssrklbp/AegisPQ/actions/workflows/supply-chain.yml"><img src="https://img.shields.io/github/actions/workflow/status/klanssrklbp/AegisPQ/supply-chain.yml?branch=main&label=supply-chain" alt="Supply chain"></a>
+  <a href="https://github.com/klanssrklbp/AegisPQ/releases/latest"><img src="https://img.shields.io/github/v/release/klanssrklbp/AegisPQ?label=release&color=blue" alt="Latest release"></a>
+  <a href="docs/VERIFYING_RELEASES.md"><img src="https://img.shields.io/badge/signed-cosign%20%2B%20SLSA-brightgreen" alt="Signed releases"></a>
   <a href="https://github.com/klanssrklbp/AegisPQ/blob/main/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT%2FApache--2.0-blue" alt="License"></a>
   <img src="https://img.shields.io/badge/rust-1.80%2B-orange" alt="Rust Version">
   <img src="https://img.shields.io/badge/status-experimental-yellow" alt="Status">
