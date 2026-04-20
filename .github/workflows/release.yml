@@ -5,8 +5,10 @@ on:
     tags:
       - "v*"
 
+# Least-privilege top-level; jobs opt into `contents: write`, `id-token: write`,
+# and `attestations: write` as needed.
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,6 +17,8 @@ jobs:
   build:
     name: Build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -88,6 +92,13 @@ jobs:
     name: Publish GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      # contents: write  — create the release and upload assets
+      # id-token:  write — OIDC token for sigstore keyless signing
+      # attestations: write — generate SLSA build provenance attestations
+      contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
 
@@ -96,19 +107,64 @@ jobs:
         with:
           path: artifacts
 
-      - name: Collect release files
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: v2.4.1
+
+      - name: Collect release files and canonical checksum manifest
         run: |
+          set -euo pipefail
           mkdir -p release
-          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.sha256' \) -exec cp {} release/ \;
-          echo "## SHA256 Checksums" > release/CHECKSUMS.txt
-          echo '```' >> release/CHECKSUMS.txt
-          cat release/*.sha256 >> release/CHECKSUMS.txt
-          echo '```' >> release/CHECKSUMS.txt
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} release/ \;
+          cd release
+          # Canonical single manifest; this is the file users verify to bootstrap trust.
+          sha256sum *.tar.gz *.zip > SHA256SUMS
+
+      - name: Sign each archive and the SHA256SUMS manifest with cosign keyless
+        run: |
+          set -euo pipefail
+          cd release
+          for f in *.tar.gz *.zip SHA256SUMS; do
+            [ -f "$f" ] || continue
+            cosign sign-blob --yes \
+              --output-signature "$f.sig" \
+              --output-certificate "$f.pem" \
+              "$f"
+          done
+
+      - name: Attest SLSA build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            release/*.tar.gz
+            release/*.zip
+            release/SHA256SUMS
+
+      - name: Compose release body
+        env:
+          VERIFY_DOC_URL: https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/docs/VERIFYING_RELEASES.md
+        run: |
+          set -euo pipefail
+          FENCE='```'
+          {
+            printf '## Signed release\n\n'
+            printf 'Every archive in this release is signed with [cosign](https://github.com/sigstore/cosign) keyless signing via GitHub OIDC and has a [SLSA build provenance](https://slsa.dev/) attestation. See [`docs/VERIFYING_RELEASES.md`](%s) for step-by-step verification.\n\n' "$VERIFY_DOC_URL"
+            printf '## SHA256 checksums\n\n'
+            printf '%s\n' "$FENCE"
+            cat release/SHA256SUMS
+            printf '%s\n' "$FENCE"
+          } > release/RELEASE_BODY.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           draft: false
           generate_release_notes: true
-          files: release/*
-          body_path: release/CHECKSUMS.txt
+          files: |
+            release/*.tar.gz
+            release/*.zip
+            release/*.sig
+            release/*.pem
+            release/SHA256SUMS
+          body_path: release/RELEASE_BODY.md

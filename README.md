@@ -53,6 +53,8 @@ aegispq completions bash > /etc/bash_completion.d/aegispq
 aegispq completions zsh  > "${fpath[1]}/_aegispq"
 ```
 
+Pre-built binaries on the [releases page](https://github.com/klanssrklbp/AegisPQ/releases) are signed with cosign keyless signing and carry SLSA build provenance attestations. See [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md) for verification steps.
+
 ## Quick Start
 
 ```bash
