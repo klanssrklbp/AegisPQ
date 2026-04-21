@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" viewBox="0 0 1100 640" font-family="ui-monospace, SFMono-Regular, 'Menlo', 'Consolas', monospace">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feOffset dy="4"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- page background -->
+  <rect width="1100" height="640" fill="#1e1f29"/>
+
+  <!-- terminal window -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="30" width="1040" height="580" rx="10" fill="#282a36"/>
+    <!-- title bar -->
+    <rect x="30" y="30" width="1040" height="36" rx="10" fill="#353746"/>
+    <rect x="30" y="54" width="1040" height="12" fill="#353746"/>
+    <!-- traffic lights -->
+    <circle cx="58" cy="48" r="7" fill="#ff5f57"/>
+    <circle cx="80" cy="48" r="7" fill="#febc2e"/>
+    <circle cx="102" cy="48" r="7" fill="#28c840"/>
+    <text x="550" y="53" text-anchor="middle" font-size="13" fill="#6272a4">verify — zsh — 1040×580</text>
+  </g>
+
+  <!-- text layers -->
+  <g font-size="15">
+    <!-- Step 1: checksum -->
+    <text x="56" y="102" fill="#50fa7b">❯</text>
+    <text x="76" y="102" fill="#f8f8f2">sha256sum --check --ignore-missing SHA256SUMS</text>
+    <text x="56" y="128" fill="#f8f8f2">aegispq-v0.1.0-x86_64-unknown-linux-gnu.tar.gz:</text><text x="540" y="128" fill="#50fa7b" font-weight="600">OK</text>
+
+    <!-- Step 2: cosign manifest -->
+    <text x="56" y="170" fill="#50fa7b">❯</text>
+    <text x="76" y="170" fill="#f8f8f2">cosign verify-blob \</text>
+    <text x="96" y="191" fill="#f8f8f2">--certificate       SHA256SUMS.pem \</text>
+    <text x="96" y="212" fill="#f8f8f2">--signature         SHA256SUMS.sig \</text>
+    <text x="96" y="233" fill="#f8f8f2">--certificate-identity-regexp \</text>
+    <text x="120" y="254" fill="#f1fa8c">'^https://github\.com/klanssrklbp/AegisPQ/\.github/workflows/release\.yml@refs/tags/v'</text>
+    <text x="96" y="275" fill="#f8f8f2">--certificate-oidc-issuer  https://token.actions.githubusercontent.com \</text>
+    <text x="96" y="296" fill="#f8f8f2">SHA256SUMS</text>
+    <text x="56" y="320" fill="#50fa7b" font-weight="600">Verified OK</text>
+
+    <!-- Step 3: attestation -->
+    <text x="56" y="362" fill="#50fa7b">❯</text>
+    <text x="76" y="362" fill="#f8f8f2">gh attestation verify aegispq-v0.1.0-x86_64-unknown-linux-gnu.tar.gz \</text>
+    <text x="96" y="383" fill="#f8f8f2">--repo klanssrklbp/AegisPQ</text>
+
+    <text x="56" y="411" fill="#8be9fd">Loaded digest sha256:b25a5e2d1bfb04334682... for</text>
+    <text x="56" y="432" fill="#8be9fd">file://aegispq-v0.1.0-x86_64-unknown-linux-gnu.tar.gz</text>
+    <text x="56" y="453" fill="#8be9fd">Loaded 1 attestation from GitHub API</text>
+
+    <text x="56" y="481" fill="#50fa7b" font-weight="600">✓ Verification succeeded!</text>
+
+    <text x="56" y="509" fill="#bd93f9">  predicate type: https://slsa.dev/provenance/v1</text>
+    <text x="56" y="528" fill="#bd93f9">  source repo:    https://github.com/klanssrklbp/AegisPQ</text>
+    <text x="56" y="547" fill="#bd93f9">  source ref:     refs/tags/v0.1.0</text>
+    <text x="56" y="566" fill="#bd93f9">  builder id:     .github/workflows/release.yml@refs/tags/v0.1.0</text>
+
+    <!-- blinking cursor -->
+    <text x="56" y="594" fill="#50fa7b">❯</text>
+    <rect x="76" y="582" width="9" height="16" fill="#f8f8f2">
+      <animate attributeName="opacity" values="1;0;1" dur="1.1s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>

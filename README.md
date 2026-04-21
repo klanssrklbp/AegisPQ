@@ -68,6 +68,10 @@ sudo install "aegispq-$VER-$TARGET/aegispq" /usr/local/bin/aegispq
 
 See [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md) for the full three-layer verification procedure (checksums + cosign + `gh attestation verify`).
 
+<p align="center">
+  <img src="docs/assets/verify-demo.png" alt="Terminal session showing sha256sum OK, cosign verify-blob returning Verified OK, and gh attestation verify succeeding with a SLSA v1 provenance predicate" width="780">
+</p>
+
 ### From source
 
 ```bash
