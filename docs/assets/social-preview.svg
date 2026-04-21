@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f1a"/>
+      <stop offset="100%" stop-color="#121a2e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7cffd4"/>
+      <stop offset="60%" stop-color="#5db8ff"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#5db8ff"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- faint hex-lattice backdrop -->
+  <g opacity="0.06" stroke="#9acdff" stroke-width="1" fill="none">
+    <path d="M 40 40 L 80 40 L 100 75 L 80 110 L 40 110 L 20 75 Z"/>
+    <path d="M 120 40 L 160 40 L 180 75 L 160 110 L 120 110 L 100 75 Z"/>
+    <path d="M 200 40 L 240 40 L 260 75 L 240 110 L 200 110 L 180 75 Z"/>
+    <path d="M 80 110 L 120 110 L 140 145 L 120 180 L 80 180 L 60 145 Z"/>
+    <path d="M 160 110 L 200 110 L 220 145 L 200 180 L 160 180 L 140 145 Z"/>
+    <path d="M 240 110 L 280 110 L 300 145 L 280 180 L 240 180 L 220 145 Z"/>
+    <path d="M 40 180 L 80 180 L 100 215 L 80 250 L 40 250 L 20 215 Z"/>
+    <path d="M 120 180 L 160 180 L 180 215 L 160 250 L 120 250 L 100 215 Z"/>
+    <path d="M 200 180 L 240 180 L 260 215 L 240 250 L 200 250 L 180 215 Z"/>
+  </g>
+
+  <!-- shield / aegis -->
+  <g transform="translate(140,200)">
+    <path d="M 100 0 L 200 30 L 200 140 Q 200 220 100 260 Q 0 220 0 140 L 0 30 Z"
+          fill="url(#shield)" opacity="0.18" filter="url(#glow)"/>
+    <path d="M 100 0 L 200 30 L 200 140 Q 200 220 100 260 Q 0 220 0 140 L 0 30 Z"
+          fill="none" stroke="url(#accent)" stroke-width="4"/>
+    <!-- interlocking Q + C inside shield: classical+PQ hybrid -->
+    <circle cx="100" cy="130" r="62" fill="none" stroke="#7cffd4" stroke-width="5"/>
+    <path d="M 100 70 a 60 60 0 0 1 0 120" fill="none" stroke="#a78bfa" stroke-width="5"/>
+    <path d="M 145 175 L 165 195" stroke="#7cffd4" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- name -->
+  <text x="430" y="260" font-family="ui-monospace, SFMono-Regular, 'Menlo', 'Consolas', monospace"
+        font-size="110" font-weight="700" fill="url(#accent)" letter-spacing="-2">
+    AegisPQ
+  </text>
+
+  <!-- tagline -->
+  <text x="430" y="320" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
+        font-size="30" font-weight="500" fill="#cbd5e1">
+    Hybrid post-quantum file encryption for Rust
+  </text>
+
+  <!-- feature chips -->
+  <g font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" font-weight="600">
+    <g transform="translate(430,370)">
+      <rect width="260" height="46" rx="23" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="26" y="30" fill="#7cffd4">X25519 + ML-KEM-768</text>
+    </g>
+    <g transform="translate(710,370)">
+      <rect width="250" height="46" rx="23" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="28" y="30" fill="#a78bfa">Ed25519 + ML-DSA-65</text>
+    </g>
+    <g transform="translate(430,430)">
+      <rect width="170" height="46" rx="23" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="20" y="30" fill="#5db8ff">AES-256-GCM</text>
+    </g>
+    <g transform="translate(620,430)">
+      <rect width="240" height="46" rx="23" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="28" y="30" fill="#5db8ff">XChaCha20-Poly1305</text>
+    </g>
+    <g transform="translate(880,430)">
+      <rect width="220" height="46" rx="23" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="32" y="30" fill="#cbd5e1">#![forbid(unsafe)]</text>
+    </g>
+  </g>
+
+  <!-- bottom banner -->
+  <g transform="translate(0,540)">
+    <rect width="1280" height="100" fill="#0b0f1a" opacity="0.8"/>
+    <line x1="0" y1="0" x2="1280" y2="0" stroke="url(#accent)" stroke-width="2" opacity="0.6"/>
+    <text x="64" y="60" font-family="ui-monospace, SFMono-Regular, monospace"
+          font-size="20" font-weight="500" fill="#94a3b8">
+      FIPS 203/204 · cosign keyless · SLSA v1 provenance
+    </text>
+    <text x="1216" y="60" text-anchor="end"
+          font-family="ui-monospace, SFMono-Regular, monospace"
+          font-size="20" font-weight="600" fill="#7cffd4">
+      github.com/klanssrklbp/AegisPQ
+    </text>
+  </g>
+</svg>
