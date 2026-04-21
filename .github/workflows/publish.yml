@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Dry run (validate without publishing)"
+        description: "Dry run (validate leaf crate only; downstream crates cannot --dry-run until their deps land on crates.io)"
         required: false
         default: "true"
         type: choice
@@ -35,33 +35,48 @@ jobs:
           AEGISPQ_FAST_KDF: "1"
         run: cargo test --workspace
 
-      # Publish in dependency order: core -> protocol -> store -> api -> facade -> cli
+      # We publish in strict dependency order:
+      #   aegispq-core -> aegispq-protocol -> aegispq-store
+      #                -> aegispq-api -> aegispq (facade) -> aegispq-cli
+      #
+      # In real-publish mode each step passes --wait-for-publish so cargo
+      # blocks until the crates.io index has updated before the next crate
+      # tries to resolve it. Without that, the index's eventual-consistency
+      # window can make the next publish fail with "no matching package".
+      #
+      # In dry-run mode we ONLY validate aegispq-core, because downstream
+      # crates' --dry-run checks would need aegispq-core to already be on
+      # crates.io (which it won't be during a dry run). Packaging the
+      # downstream crates locally would hit the same resolver path. This
+      # is the known limitation of dry-running an unpublished workspace
+      # of path-dependent crates.
+
       - name: Publish aegispq-core
         run: |
-          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
+          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '--wait-for-publish' }}"
           cargo publish -p aegispq-core $FLAGS
 
-      - name: Publish aegispq-protocol
+      - name: Dry-run stops here
+        if: inputs.dry_run == 'true'
         run: |
-          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
-          cargo publish -p aegispq-protocol $FLAGS
+          echo "::notice::Dry run finished. Only aegispq-core was validated; downstream crates (aegispq-protocol, -store, -api, aegispq, aegispq-cli) cannot be dry-run in an unpublished workspace. To fully validate downstream crates, run this workflow with dry_run=false after aegispq-core has been accepted on crates.io."
+
+      - name: Publish aegispq-protocol
+        if: inputs.dry_run != 'true'
+        run: cargo publish -p aegispq-protocol --wait-for-publish
 
       - name: Publish aegispq-store
-        run: |
-          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
-          cargo publish -p aegispq-store $FLAGS
+        if: inputs.dry_run != 'true'
+        run: cargo publish -p aegispq-store --wait-for-publish
 
       - name: Publish aegispq-api
-        run: |
-          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
-          cargo publish -p aegispq-api $FLAGS
+        if: inputs.dry_run != 'true'
+        run: cargo publish -p aegispq-api --wait-for-publish
 
       - name: Publish aegispq (facade)
-        run: |
-          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
-          cargo publish -p aegispq $FLAGS
+        if: inputs.dry_run != 'true'
+        run: cargo publish -p aegispq --wait-for-publish
 
       - name: Publish aegispq-cli
-        run: |
-          FLAGS="${{ inputs.dry_run == 'true' && '--dry-run' || '' }}"
-          cargo publish -p aegispq-cli $FLAGS
+        if: inputs.dry_run != 'true'
+        run: cargo publish -p aegispq-cli --wait-for-publish
